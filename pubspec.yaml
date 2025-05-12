@@ -1,0 +1,68 @@
+name: dantri_clone
+description: "A Dan tri app clone"
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  http: ^1.4.0
+  youtube_player_flutter: ^9.1.1
+  provider: ^6.1.5
+  cached_network_image: ^3.4.1
+  flutter_cache_manager: ^3.4.1
+  path_provider: ^2.1.5
+  webfeed: ^0.7.0
+  xml: ^5.4.1
+  url_launcher: ^6.3.1
+  go_router: ^15.1.2
+  firebase_auth: ^5.5.3
+  firebase_core: ^3.13.0
+  flutter_launcher_icons: ^0.11.0
+  flutter_native_splash: ^2.2.0+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+
+  uses-material-design: true
+
+  assets:
+    - assets/logo/logo.png
+    - assets/logo/Dantri.png
+
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo/logo.png"
+
+
+flutter_native_splash:
+  color: "#ffffff" # hoặc màu nền bạn muốn
+  image: assets/logo/logo.png # đường dẫn đến logo (đảm bảo ảnh có kích thước phù hợp, ví dụ: 512x512)
+  branding: assets/logo/Dantri.png # nếu muốn thêm tên app bên dưới logo
+  branding_mode: bottom
+  branding_bottom_padding: 24
+  android_gravity: center
+  ios_content_mode: center
+  fullscreen: true
+  web: false
