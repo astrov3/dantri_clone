@@ -1,6 +1,7 @@
 import 'package:dantri_clone/views/login_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 // Authentication Service
 class AuthService {
@@ -26,13 +27,40 @@ class AuthService {
       return null;
     }
   }
+
+  // register method
+  Future<UserCredential?> registerWithEmailAndPassword(
+    String email,
+    String password,
+  ) async {
+    try {
+      return await _firebaseAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      print('Register error: ${e.message}');
+      return null;
+    }
+  }
+
   // Sign in with Google method
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      final GoogleAuthProvider googleProvider = GoogleAuthProvider();
-      return await _firebaseAuth.signInWithPopup(googleProvider);
-    } on FirebaseAuthException catch (e) {
-      print('Sign in with Google error: ${e.message}');
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return null; // User hủy đăng nhập
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      return await _firebaseAuth.signInWithCredential(credential);
+    } catch (e) {
+      print('Lỗi Google Sign-In: $e');
       return null;
     }
   }

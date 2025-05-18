@@ -28,7 +28,7 @@ class HomeScreen extends StatelessWidget {
               leading: IconButton(
                 icon: Icon(Icons.person_outline),
                 onPressed: () {
-                  context.push('/profile');
+                  context.push('/login');
                 },
               ),
               actions: [

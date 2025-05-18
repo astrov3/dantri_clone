@@ -11,6 +11,7 @@ import 'package:dantri_clone/views/category_screen.dart';
 import 'package:dantri_clone/views/video_screen.dart';
 import 'package:dantri_clone/views/chatbot_screen.dart';
 import 'package:dantri_clone/views/utility_screen.dart';
+import 'package:dantri_clone/views/register_screen.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -30,6 +31,11 @@ class AppRouter {
     // },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterScreen(),
+      ),
+
       // ShellRoute giữ Layout cố định (nav bar)
       ShellRoute(
         builder: (context, state, child) => Layout(child: child),
