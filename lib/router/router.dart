@@ -1,8 +1,6 @@
 import 'package:dantri_clone/views/notifications_screen.dart';
 import 'package:dantri_clone/views/profile_screen.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:dantri_clone/views/layout.dart';
 import 'package:dantri_clone/views/login_screen.dart';

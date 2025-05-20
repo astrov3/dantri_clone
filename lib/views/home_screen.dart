@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -16,24 +17,37 @@ class HomeScreen extends StatelessWidget {
       child: Consumer<NewsViewModel>(
         builder: (context, viewModel, child) {
           if (viewModel.isLoading) {
-            return Center(child: CircularProgressIndicator());
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
           }
 
           if (viewModel.news.isEmpty) {
-            return Center(child: Text('Không tải được tin tức'));
+            return const Scaffold(
+              body: Center(child: Text('Không tải được tin tức')),
+            );
           }
 
           return Scaffold(
             appBar: AppBar(
+              title: const Text("Tin tức"),
               leading: IconButton(
-                icon: Icon(Icons.person_outline),
+                icon: const Icon(Icons.person_outline),
                 onPressed: () {
-                  context.push('/login');
+                  final user = FirebaseAuth.instance.currentUser;
+
+                  if (user != null) {
+                    // Đã đăng nhập => chuyển tới trang Profile qua GoRouter
+                    context.go('/profile');
+                  } else {
+                    // Chưa đăng nhập => chuyển tới trang Login
+                    context.go('/login');
+                  }
                 },
               ),
               actions: [
                 IconButton(
-                  icon: Icon(Icons.notifications_outlined),
+                  icon: const Icon(Icons.notifications_outlined),
                   onPressed: () {
                     context.push('/notifications');
                   },
@@ -43,9 +57,8 @@ class HomeScreen extends StatelessWidget {
 
             body: Column(
               children: [
-                // Thêm thanh tìm kiếm (sẽ cập nhật bên dưới)
-                Container(
-                  padding: EdgeInsets.all(8.0),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
                   child: SafeArea(child: SearchBar()),
                 ),
                 Expanded(
@@ -68,12 +81,12 @@ class HomeScreen extends StatelessWidget {
                                     fit: BoxFit.cover,
                                     placeholder:
                                         (context, url) =>
-                                            CircularProgressIndicator(),
+                                            const CircularProgressIndicator(),
                                     errorWidget:
                                         (context, url, error) =>
-                                            Icon(Icons.error),
+                                            const Icon(Icons.error),
                                   )
-                                  : Icon(Icons.image),
+                                  : const Icon(Icons.image),
                           title: Text(item['title'] ?? 'Không có tiêu đề'),
                           subtitle: Text(item['pubDate'] ?? 'Không có ngày'),
                           onTap: () {
@@ -98,7 +111,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   String? _extractImageUrl(String description) {
-    RegExp regExp = RegExp(
+    final RegExp regExp = RegExp(
       'https?://[^\\s<>\'\\"\\[\\]]+\\.(?:jpg|jpeg|png|gif)',
     );
 
@@ -106,7 +119,6 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// Thêm lớp SearchBar (sẽ định nghĩa sau)
 class SearchBar extends StatelessWidget {
   const SearchBar({super.key});
 
@@ -115,7 +127,7 @@ class SearchBar extends StatelessWidget {
     return TextField(
       decoration: InputDecoration(
         hintText: 'Tìm kiếm tin tức...',
-        prefixIcon: Icon(Icons.search),
+        prefixIcon: const Icon(Icons.search),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
       ),
       onChanged: (value) {

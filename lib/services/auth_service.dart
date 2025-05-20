@@ -43,7 +43,6 @@ class AuthService {
       return null;
     }
   }
-
   // Sign in with Google method
   Future<UserCredential?> signInWithGoogle() async {
     try {
