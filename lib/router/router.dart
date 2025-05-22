@@ -1,8 +1,6 @@
 import 'package:dantri_clone/views/notifications_screen.dart';
 import 'package:dantri_clone/views/profile_screen.dart';
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:dantri_clone/views/layout.dart';
 import 'package:dantri_clone/views/login_screen.dart';
@@ -11,6 +9,7 @@ import 'package:dantri_clone/views/category_screen.dart';
 import 'package:dantri_clone/views/video_screen.dart';
 import 'package:dantri_clone/views/chatbot_screen.dart';
 import 'package:dantri_clone/views/utility_screen.dart';
+import 'package:dantri_clone/views/register_screen.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -30,6 +29,11 @@ class AppRouter {
     // },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterScreen(),
+      ),
+
       // ShellRoute giữ Layout cố định (nav bar)
       ShellRoute(
         builder: (context, state, child) => Layout(child: child),

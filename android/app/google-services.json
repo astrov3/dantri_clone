@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "912302282393",
+    "project_id": "dantri-clone",
+    "storage_bucket": "dantri-clone.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:912302282393:android:083623304ce4edc09b8a08",
+        "android_client_info": {
+          "package_name": "com.example.dantri_clone"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCuiWsCvDUT7umOelSdf8-vBki3vE-4tCc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
