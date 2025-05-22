@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../services/video_service.dart';
 
 class VideoViewModel extends ChangeNotifier {
@@ -13,6 +14,10 @@ class VideoViewModel extends ChangeNotifier {
 
   // Danh sách bình luận cho mỗi video (key: videoId, value: danh sách bình luận)
   Map<String, List<String>> videoComments = {};
+
+  // Thêm biến để lưu trữ bình luận từ API
+  Map<String, List<Map<String, dynamic>>> apiComments = {};
+  Map<String, bool> isLoadingComments = {};
 
   void fetchVideos() async {
     isLoading = true;
@@ -75,7 +80,48 @@ class VideoViewModel extends ChangeNotifier {
   }
 
   // Lấy danh sách bình luận cho video
-  List<String> getComments(String videoId) {
-    return videoComments[videoId] ?? [];
+  List<Map<String, dynamic>> getComments(String videoId) {
+    return apiComments[videoId] ?? [];
+  }
+
+  // Phương thức để lấy bình luận từ API
+  Future<void> fetchComments(String videoId) async {
+    if (isLoadingComments[videoId] == true) return;
+
+    isLoadingComments[videoId] = true;
+    notifyListeners();
+
+    try {
+      final comments = await videoService.getVideoComments(videoId);
+      apiComments[videoId] = comments;
+    } catch (e) {
+      print('Error fetching comments: $e');
+    } finally {
+      isLoadingComments[videoId] = false;
+      notifyListeners();
+    }
+  }
+
+  // Phương thức để lấy bình luận
+  List<Map<String, dynamic>> getCommentsFromApi(String videoId) {
+    return apiComments[videoId] ?? [];
+  }
+
+  // Phương thức để thêm bình luận mới
+  Future<void> addCommentFromApi(String videoId, String comment) async {
+    try {
+      final newComment = await videoService.postComment(videoId, comment);
+
+      if (!apiComments.containsKey(videoId)) {
+        apiComments[videoId] = [];
+      }
+
+      // Add the new comment to the list
+      apiComments[videoId]!.insert(0, newComment);
+      notifyListeners();
+    } catch (e) {
+      print('Error posting comment: $e');
+      // You might want to show an error message to the user here
+    }
   }
 }

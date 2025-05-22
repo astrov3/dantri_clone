@@ -1,411 +1,386 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../viewmodels/video_viewmodel.dart';
 
 class CommentScreen extends StatefulWidget {
   final String videoId;
   final String videoTitle;
   final String channelTitle;
-  final VideoViewModel viewModel; // Thêm tham số này
+  final VideoViewModel viewModel;
 
   const CommentScreen({
-    Key? key,
+    super.key,
     required this.videoId,
     required this.videoTitle,
     required this.channelTitle,
-    required this.viewModel, // Yêu cầu truyền viewModel
-  }) : super(key: key);
+    required this.viewModel,
+  });
 
   @override
   State<CommentScreen> createState() => _CommentScreenState();
 }
 
-class _CommentScreenState extends State<CommentScreen> {
+class _CommentScreenState extends State<CommentScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _commentController = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
+  bool _isInitialized = false;
+  late AnimationController _animationController;
+  late Animation<double> _slideAnimation;
 
   @override
-  void dispose() {
-    _commentController.dispose();
-    _focusNode.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _slideAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+    _animationController.forward();
+
+    Future.microtask(() {
+      if (!_isInitialized) {
+        widget.viewModel.fetchComments(widget.videoId);
+        _isInitialized = true;
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Sử dụng Provider.value để chia sẻ instance của VideoViewModel
-    return ChangeNotifierProvider.value(
-      value: widget.viewModel,
-      child: Consumer<VideoViewModel>(
-        builder: (context, viewModel, child) {
-          List<String> comments = viewModel.getComments(widget.videoId);
-
-          return Scaffold(
-            appBar: AppBar(
-              title: Text('Bình luận (${comments.length})'),
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.pop(context),
+    return Scaffold(
+      backgroundColor: Colors.grey[50],
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.black87),
+                    onPressed: () {
+                      _animationController.reverse().then((_) {
+                        Navigator.pop(context);
+                      });
+                    },
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '@${widget.channelTitle}',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          widget.videoTitle,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          softWrap: false,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            body: Column(
-              children: [
-                // Thông tin video
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.grey[100],
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.videoTitle,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+
+            // Comments List
+            Expanded(
+              child: Consumer<VideoViewModel>(
+                builder: (context, viewModel, _) {
+                  final comments = viewModel.getComments(widget.videoId);
+
+                  if (viewModel.isLoadingComments[widget.videoId] == true) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.green),
+                    );
+                  }
+
+                  if (comments.isEmpty) {
+                    return Container(
+                      color: Colors.white,
+                      child: Center(
+                        child: Text(
+                          'Không có bình luận',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 16,
+                          ),
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '@${widget.channelTitle}',
-                        style: TextStyle(
-                          color: Colors.grey[700],
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Phần nhập bình luận
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.3),
-                        spreadRadius: 1,
-                        blurRadius: 3,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        backgroundColor: Colors.blue,
-                        child: Icon(Icons.person, color: Colors.white),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: _commentController,
-                          focusNode: _focusNode,
-                          decoration: const InputDecoration(
-                            hintText: 'Thêm bình luận...',
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: comments.length,
+                    itemBuilder: (context, index) {
+                      final comment = comments[index];
+                      final snippet =
+                          comment['snippet']['topLevelComment']['snippet']
+                              as Map<String, dynamic>;
+
+                      return SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0, 0.1),
+                          end: Offset.zero,
+                        ).animate(
+                          CurvedAnimation(
+                            parent: _animationController,
+                            curve: Interval(
+                              index / comments.length,
+                              (index + 1) / comments.length,
+                              curve: Curves.easeOut,
                             ),
                           ),
-                          maxLines: null,
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: () {
-                          if (_commentController.text.trim().isNotEmpty) {
-                            viewModel.addComment(
-                              widget.videoId,
-                              _commentController.text.trim(),
-                            );
-                            _commentController.clear();
-                            _focusNode.unfocus();
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('Gửi'),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Nút sắp xếp bình luận
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.sort),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Sắp xếp theo',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Spacer(),
-                      PopupMenuButton<String>(
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'newest',
-                            child: Text('Mới nhất'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
                           ),
-                          const PopupMenuItem(
-                            value: 'popular',
-                            child: Text('Phổ biến nhất'),
-                          ),
-                        ],
-                        onSelected: (value) {
-                          // Có thể thêm logic sắp xếp ở đây
-                        },
-                        child: const Text(
-                          'Mới nhất',
-                          style: TextStyle(color: Colors.blue),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Danh sách bình luận
-                Expanded(
-                  child: comments.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(
-                                Icons.comment_outlined,
-                                size: 64,
-                                color: Colors.grey[400],
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'Chưa có bình luận nào.',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey,
+                              // Avatar
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundColor: Colors.grey[200],
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Image.network(
+                                    snippet['authorProfileImageUrl']
+                                            as String? ??
+                                        'https://via.placeholder.com/40',
+                                    width: 40,
+                                    height: 40,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (_, __, ___) => Icon(
+                                          Icons.person,
+                                          color: Colors.grey[600],
+                                        ),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Hãy là người đầu tiên bình luận về video này!',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
+                              const SizedBox(width: 12),
+
+                              // Comment content
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.05),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Username and time
+                                      Row(
+                                        children: [
+                                          Text(
+                                            snippet['authorDisplayName']
+                                                as String,
+                                            style: const TextStyle(
+                                              color: Colors.black87,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            _formatDate(
+                                              snippet['publishedAt'] as String,
+                                            ),
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      // Comment text
+                                      Text(
+                                        snippet['textDisplay'] as String,
+                                        style: const TextStyle(
+                                          color: Colors.black87,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      // Like button
+                                      Row(
+                                        children: [
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons.favorite_border,
+                                              color: Colors.grey[600],
+                                              size: 20,
+                                            ),
+                                            onPressed: () {},
+                                          ),
+                                          Text(
+                                            '0',
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                        )
-                      : ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: comments.length,
-                          separatorBuilder: (context, index) => const Divider(),
-                          itemBuilder: (context, index) {
-                            return FullCommentItem(
-                              channelTitle: widget.channelTitle,
-                              comment: comments[index],
-                              onReply: (replyText) {
-                                // Có thể thêm chức năng trả lời bình luận ở đây
-                                viewModel.addComment(
-                                  widget.videoId,
-                                  '@${widget.channelTitle} $replyText',
-                                );
-                              },
-                            );
-                          },
                         ),
-                ),
-              ],
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          );
-        },
-      ),
-    );
-  }
-}
 
-class FullCommentItem extends StatefulWidget {
-  final String channelTitle;
-  final String comment;
-  final Function(String) onReply;
-
-  const FullCommentItem({
-    Key? key,
-    required this.channelTitle,
-    required this.comment,
-    required this.onReply,
-  }) : super(key: key);
-
-  @override
-  State<FullCommentItem> createState() => _FullCommentItemState();
-}
-
-class _FullCommentItemState extends State<FullCommentItem> {
-  bool _isLiked = false;
-  bool _isReplyVisible = false;
-  final TextEditingController _replyController = TextEditingController();
-
-  @override
-  void dispose() {
-    _replyController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const CircleAvatar(
-              backgroundColor: Colors.blue,
-              radius: 18,
-              child: Icon(Icons.person, color: Colors.white),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // Comment input
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        '@${widget.channelTitle}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                  Expanded(
+                    child: TextField(
+                      controller: _commentController,
+                      style: const TextStyle(color: Colors.black87),
+                      decoration: InputDecoration(
+                        hintText: 'Add a comment...',
+                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(color: Colors.green),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      const Text(
-                        '2 phút trước',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    widget.comment,
-                    style: const TextStyle(fontSize: 15),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      InkWell(
-                        onTap: () {
-                          setState(() {
-                            _isLiked = !_isLiked;
-                          });
-                        },
-                        child: Row(
-                          children: [
-                            Icon(
-                              _isLiked ? Icons.thumb_up : Icons.thumb_up_outlined,
-                              size: 16,
-                              color: _isLiked ? Colors.blue : Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              _isLiked ? '1' : '0',
-                              style: TextStyle(
-                                color: _isLiked ? Colors.blue : Colors.grey[600],
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
+                  const SizedBox(width: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withOpacity(0.3),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
                         ),
-                      ),
-                      const SizedBox(width: 20),
-                      InkWell(
-                        onTap: () {
-                          setState(() {
-                            _isReplyVisible = !_isReplyVisible;
-                          });
-                        },
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.reply_outlined,
-                              size: 16,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Trả lời',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.send, color: Colors.white),
+                      onPressed: () async {
+                        final comment = _commentController.text.trim();
+                        if (comment.isNotEmpty) {
+                          await widget.viewModel.addCommentFromApi(
+                            widget.videoId,
+                            comment,
+                          );
+                          _commentController.clear();
+                        }
+                      },
+                    ),
                   ),
                 ],
               ),
             ),
           ],
         ),
-        if (_isReplyVisible)
-          Padding(
-            padding: const EdgeInsets.only(left: 48, top: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _replyController,
-                    decoration: const InputDecoration(
-                      hintText: 'Viết phản hồi...',
-                      border: OutlineInputBorder(),
-                       contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () {
-                    if (_replyController.text.trim().isNotEmpty) {
-                      widget.onReply(_replyController.text.trim());
-                      _replyController.clear();
-                      setState(() {
-                        _isReplyVisible = false;
-                      });
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                  ),
-                  child: const Text('Gửi'),
-                ),
-              ],
-            ),
-          ),
-        const SizedBox(height: 12),
-      ],
+      ),
     );
+  }
+
+  String _formatDate(String isoDate) {
+    try {
+      final date = DateTime.parse(isoDate);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inDays > 365) {
+        return '${(difference.inDays / 365).floor()}y';
+      } else if (difference.inDays > 30) {
+        return '${(difference.inDays / 30).floor()}mo';
+      } else if (difference.inDays > 0) {
+        return '${difference.inDays}d';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours}h';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes}m';
+      } else {
+        return 'now';
+      }
+    } catch (e) {
+      return isoDate;
+    }
+  }
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    _animationController.dispose();
+    super.dispose();
   }
 }
