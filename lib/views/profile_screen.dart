@@ -1,9 +1,24 @@
+import 'package:dantri_clone/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final AuthService _authService = AuthService();
+  final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +50,8 @@ class ProfileScreen extends StatelessWidget {
           children: [
             if (user.photoURL != null)
               CircleAvatar(
-                backgroundImage: NetworkImage(user.photoURL!),
+                backgroundColor: Colors.transparent,
+                foregroundImage: NetworkImage(user.photoURL!),
                 radius: 50,
               )
             else
@@ -106,9 +122,9 @@ class ProfileScreen extends StatelessWidget {
                   leading: const Icon(Icons.logout, color: Colors.blue),
                   title: const Text('Đăng xuất'),
                   onTap: () async {
-                    await FirebaseAuth.instance.signOut();
-                    Navigator.of(context).pop(); // đóng bottom sheet
-                    context.go('/home'); // chuyển về trang home
+                    await _authService.signOut();
+                    Navigator.of(context).pop();
+                    context.go('/home');
                   },
                 ),
                 ListTile(
@@ -117,26 +133,16 @@ class ProfileScreen extends StatelessWidget {
                     'Xoá tài khoản',
                     style: TextStyle(color: Colors.red),
                   ),
-                  onTap: () async {
-                    try {
-                      await FirebaseAuth.instance.currentUser?.delete();
-                      Navigator.of(context).pop(); // đóng bottom sheet
-                      context.go('/home'); // chuyển về trang home
-                    } on FirebaseAuthException catch (e) {
-                      Navigator.of(context).pop();
-                      _showErrorDialog(
-                        context,
-                        e.message ?? 'Xoá tài khoản thất bại.',
-                      );
-                    }
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _showDeleteAccountConfirmation(context);
                   },
                 ),
                 ListTile(
                   leading: const Icon(Icons.cancel),
                   title: const Text('Hủy'),
                   onTap: () {
-                    Navigator.pop(context); // đóng bottom sheet
-                    context.go('/home'); // chuyển về trang home
+                    Navigator.pop(context);
                   },
                 ),
               ],
@@ -147,11 +153,211 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  void _showErrorDialog(BuildContext context, String message) {
+  void _showDeleteAccountConfirmation(BuildContext context) {
     showDialog(
       context: context,
       builder:
-          (_) => AlertDialog(
+          (context) => AlertDialog(
+            title: const Text(
+              'Xác nhận xóa tài khoản',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Bạn có chắc chắn muốn xóa tài khoản không?',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Hành động này sẽ:',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 8),
+                const Text('• Xóa vĩnh viễn tài khoản của bạn'),
+                const Text('• Xóa tất cả dữ liệu cá nhân'),
+                const Text('• Không thể khôi phục sau khi xóa'),
+                const SizedBox(height: 16),
+                const Text(
+                  'Bạn có muốn tiếp tục không?',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Hủy'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _handleDeleteAccount();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Xóa tài khoản'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _handleDeleteAccount() async {
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Hiển thị loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final bool success = await _authService.deleteAccount();
+
+      // Đóng loading dialog
+      Navigator.of(context).pop();
+
+      if (success) {
+        _showSuccessDialog('Tài khoản đã được xóa thành công.');
+      } else {
+        _showErrorDialog('Không thể xóa tài khoản. Vui lòng thử lại.');
+      }
+    } on FirebaseAuthException catch (e) {
+      // Đóng loading dialog
+      Navigator.of(context).pop();
+
+      if (e.code == 'requires-recent-login') {
+        _showReauthenticationDialog();
+      } else {
+        _showErrorDialog(e.message ?? 'Xóa tài khoản thất bại.');
+      }
+    } catch (e) {
+      // Đóng loading dialog
+      Navigator.of(context).pop();
+      _showErrorDialog('Có lỗi xảy ra. Vui lòng thử lại.');
+    }
+  }
+
+  void _showReauthenticationDialog() {
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Kiểm tra xem user đăng nhập bằng Google hay email/password
+    bool isGoogleUser = user.providerData.any(
+      (info) => info.providerId == 'google.com',
+    );
+
+    if (isGoogleUser) {
+      _showGoogleReauthDialog();
+    } else {
+      _showPasswordReauthDialog();
+    }
+  }
+
+  void _showGoogleReauthDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Xác thực lại'),
+            content: const Text(
+              'Để xóa tài khoản, bạn cần đăng nhập lại với Google để xác nhận.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Hủy'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+
+                  final bool success =
+                      await _authService.reauthenticateWithGoogle();
+                  if (success) {
+                    _handleDeleteAccount();
+                  } else {
+                    _showErrorDialog('Xác thực thất bại. Vui lòng thử lại.');
+                  }
+                },
+                child: const Text('Đăng nhập lại'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showPasswordReauthDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Xác thực lại'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Vui lòng nhập mật khẩu để xác nhận xóa tài khoản:'),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Mật khẩu',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  _passwordController.clear();
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Hủy'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (_passwordController.text.isEmpty) {
+                    _showErrorDialog('Vui lòng nhập mật khẩu.');
+                    return;
+                  }
+
+                  Navigator.of(context).pop();
+
+                  final bool success = await _authService.reauthenticateUser(
+                    _passwordController.text,
+                  );
+                  _passwordController.clear();
+
+                  if (success) {
+                    _handleDeleteAccount();
+                  } else {
+                    _showErrorDialog('Mật khẩu không đúng. Vui lòng thử lại.');
+                  }
+                },
+                child: const Text('Xác nhận'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
             title: const Text('Lỗi'),
             content: Text(message),
             actions: [
@@ -163,4 +369,27 @@ class ProfileScreen extends StatelessWidget {
           ),
     );
   }
+
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Thành công'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.go('/home');
+                },
+                child: const Text('Đóng'),
+              ),
+            ],
+          ),
+    );
+  }
 }
+// Note: Ensure that the AuthService class has the method reauthenticateWithGoogle
+// implemented to handle Google re-authentication.
