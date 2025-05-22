@@ -1,15 +1,17 @@
-import 'package:dantri_clone/views/notifications_screen.dart';
-import 'package:dantri_clone/views/profile_screen.dart';
-import 'package:go_router/go_router.dart';
-
+import 'package:dantri_clone/views/category_screen.dart';
+import 'package:dantri_clone/views/chatbot_screen.dart';
+import 'package:dantri_clone/views/home_screen.dart';
 import 'package:dantri_clone/views/layout.dart';
 import 'package:dantri_clone/views/login_screen.dart';
-import 'package:dantri_clone/views/home_screen.dart';
-import 'package:dantri_clone/views/category_screen.dart';
-import 'package:dantri_clone/views/video_screen.dart';
-import 'package:dantri_clone/views/chatbot_screen.dart';
-import 'package:dantri_clone/views/utility_screen.dart';
+import 'package:dantri_clone/views/notifications_screen.dart';
+import 'package:dantri_clone/views/profile_screen.dart';
 import 'package:dantri_clone/views/register_screen.dart';
+import 'package:dantri_clone/views/utility_screen.dart';
+import 'package:dantri_clone/views/video_screen.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import '../viewmodels/video_viewmodel.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -48,7 +50,11 @@ class AppRouter {
           ),
           GoRoute(
             path: '/video',
-            builder: (context, state) => const VideoScreen(),
+            builder:
+                (context, state) => ChangeNotifierProvider(
+                  create: (_) => VideoViewModel()..fetchVideos(),
+                  child: const VideoScreen(),
+                ),
           ),
           GoRoute(
             path: '/chatbot',
