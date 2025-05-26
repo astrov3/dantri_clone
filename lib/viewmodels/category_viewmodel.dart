@@ -6,9 +6,24 @@ class CategoryViewModel extends ChangeNotifier {
   final NewsService newsService = NewsService();
   bool isLoading = false;
 
+  bool _disposed = false; // Cờ kiểm tra trạng thái dispose
+
   CategoryViewModel() {
     for (var category in getCategories()) {
       fetchNewsByCategory(category);
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) {
+      super.notifyListeners();
     }
   }
 

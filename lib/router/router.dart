@@ -1,5 +1,7 @@
 import 'package:dantri_clone/views/category_screen.dart';
+import 'package:dantri_clone/views/comment_screen.dart';
 import 'package:dantri_clone/views/dantri_ai_screen.dart';
+import 'package:dantri_clone/views/detail_screen.dart';
 import 'package:dantri_clone/views/home_screen.dart';
 import 'package:dantri_clone/views/layout.dart';
 import 'package:dantri_clone/views/login_screen.dart';
@@ -88,6 +90,26 @@ class AppRouter {
       GoRoute(
         path: '/notifications',
         builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/detail',
+        builder:
+            (context, state) =>
+                DetailScreen(item: state.extra as Map<String, String>),
+      ),
+      GoRoute(
+        path: '/comment',
+        builder: (context, state) {
+          final params = state.extra as Map<String, dynamic>;
+          return ChangeNotifierProvider(
+            create: (_) => VideoViewModel()..fetchComments(params['videoId']),
+            child: CommentScreen(
+              videoId: params['videoId'],
+              videoTitle: params['videoTitle'],
+              channelTitle: params['channelTitle'],
+            ),
+          );
+        },
       ),
     ],
   );

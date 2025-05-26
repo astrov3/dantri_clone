@@ -7,14 +7,12 @@ class CommentScreen extends StatefulWidget {
   final String videoId;
   final String videoTitle;
   final String channelTitle;
-  final VideoViewModel viewModel;
 
   const CommentScreen({
     super.key,
     required this.videoId,
     required this.videoTitle,
     required this.channelTitle,
-    required this.viewModel,
   });
 
   @override
@@ -42,7 +40,7 @@ class _CommentScreenState extends State<CommentScreen>
 
     Future.microtask(() {
       if (!_isInitialized) {
-        widget.viewModel.fetchComments(widget.videoId);
+        context.read<VideoViewModel>().fetchComments(widget.videoId);
         _isInitialized = true;
       }
     });
@@ -335,10 +333,9 @@ class _CommentScreenState extends State<CommentScreen>
                       onPressed: () async {
                         final comment = _commentController.text.trim();
                         if (comment.isNotEmpty) {
-                          await widget.viewModel.addCommentFromApi(
-                            widget.videoId,
-                            comment,
-                          );
+                          await context
+                              .read<VideoViewModel>()
+                              .addCommentFromApi(widget.videoId, comment);
                           _commentController.clear();
                         }
                       },
