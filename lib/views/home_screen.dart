@@ -2,10 +2,59 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
+import 'package:lunar/lunar.dart';
 import 'package:provider/provider.dart';
 
 import '../utils/text_formatter.dart';
 import '../viewmodels/news_viewmodel.dart';
+
+String _convertToHanViet(String chinese) {
+  final Map<String, String> hanVietMap = {
+    '正': 'Chính',
+    '二': 'Nhị',
+    '三': 'Tam',
+    '四': 'Tứ',
+    '五': 'Ngũ',
+    '六': 'Lục',
+    '七': 'Thất',
+    '八': 'Bát',
+    '九': 'Cửu',
+    '十': 'Thập',
+    '冬': 'Đông',
+    '腊': 'Lạp',
+    '月': 'Nguyệt',
+  };
+
+  String result = chinese;
+  hanVietMap.forEach((key, value) {
+    result = result.replaceAll(key, value);
+  });
+  return result;
+}
+
+String _getCurrentDateInfo() {
+  try {
+    final now = DateTime.now();
+    final lunar = Lunar.fromDate(now);
+
+    // Initialize Vietnamese locale
+    initializeDateFormatting('vi_VN');
+
+    final weekday = DateFormat('EEEE', 'vi_VN').format(now);
+    final day = DateFormat('d').format(now);
+    final month = DateFormat('MMMM', 'vi_VN').format(now);
+    final year = DateFormat('y').format(now);
+    final lunarMonth = _convertToHanViet(lunar.getMonthInChinese());
+
+    return '$weekday\n$day $month $year\nTháng $lunarMonth ÂL';
+  } catch (e) {
+    // Fallback to simple date format if there's an error
+    final now = DateTime.now();
+    return '${now.day}/${now.month}/${now.year}';
+  }
+}
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -83,7 +132,7 @@ class HomeScreen extends StatelessWidget {
                               const Icon(Icons.calendar_today, size: 24),
                               const SizedBox(height: 8),
                               Text(
-                                'Thứ Tư\n28 Tháng 5 2023\nTháng 5 ÂL',
+                                _getCurrentDateInfo(),
                                 style: const TextStyle(fontSize: 12),
                                 textAlign: TextAlign.center,
                               ),
