@@ -19,4 +19,17 @@ class TrafficLawChatbotService extends BaseChatbotService {
       'entities': response['entities'],
     };
   }
+
+  @override
+  Future<Map<String, dynamic>> sendWebhookMessage(String message) async {
+    final response = await super.sendWebhookMessage(message);
+    print('Webhook Response: $response');
+    return {
+      'answer':
+          response['answer'] ?? 'Xin lỗi, tôi không hiểu câu hỏi của bạn.',
+      'confidence': response['confidence'] ?? 0.0,
+      'violationsFound': response['violations_found'] ?? 0,
+      'entities': response['entities'],
+    };
+  }
 }
