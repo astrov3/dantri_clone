@@ -106,6 +106,7 @@ abstract class BaseChatProvider extends ChangeNotifier {
         id: const Uuid().v4(),
         text:
             response['fulfillmentText'] ??
+            response['fulfillmentMessages']?[0]?['text']?['text']?[0] ??
             'Xin lỗi, tôi không hiểu câu hỏi của bạn.',
         isUser: false,
         timestamp: DateTime.now(),

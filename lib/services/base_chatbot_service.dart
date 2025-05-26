@@ -37,7 +37,10 @@ abstract class BaseChatbotService {
       final response = await http.post(
         Uri.parse('$baseUrl/$endpoint/webhook'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'sessionId': sessionId, 'message': message}),
+        body: jsonEncode({
+          'queryResult': {'queryText': message},
+          'session': sessionId,
+        }),
       );
 
       if (response.statusCode == 200) {
