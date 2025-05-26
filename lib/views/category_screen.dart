@@ -1,105 +1,248 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart'; // để dùng listEquals
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../viewmodels/category_viewmodel.dart';
-import 'detail_screen.dart';
+import '../widgets/category_drawer.dart';
 
-class CategoryScreen extends StatelessWidget {
+class CategoryScreen extends StatefulWidget {
   const CategoryScreen({super.key});
 
   @override
+  State<CategoryScreen> createState() => _CategoryScreenState();
+}
+
+class _CategoryScreenState extends State<CategoryScreen>
+    with TickerProviderStateMixin {
+  TabController? _tabController;
+  List<String> categories = [];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final viewModel = Provider.of<CategoryViewModel>(context);
+    final newCategories = viewModel.getCategories();
+
+    if (!listEquals(newCategories, categories)) {
+      categories = newCategories;
+
+      _tabController?.dispose();
+
+      if (categories.isNotEmpty) {
+        _tabController = TabController(length: categories.length, vsync: this);
+      } else {
+        _tabController = null;
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController?.dispose();
+    super.dispose();
+  }
+
+  void _onCategorySelected(String category, String rssUrl) {
+    final index = categories.indexOf(category);
+    if (index != -1 && _tabController != null) {
+      _tabController!.animateTo(index);
+    }
+    if (mounted) {
+      Future.microtask(() => Navigator.pop(context));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => CategoryViewModel(),
-      child: DefaultTabController(
-        length: CategoryViewModel().getCategories().length, // Số lượng tab
-        child: Scaffold(
-          appBar: AppBar(
-            title: Text('Chuyên Mục'),
-            bottom: TabBar(
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              labelColor: Colors.black,
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: Colors.green,
-              tabs:
-                  CategoryViewModel()
-                      .getCategories()
-                      .map((category) => Tab(text: category))
-                      .toList(),
-            ),
-          ),
-          body: TabBarView(
-            children:
-                CategoryViewModel().getCategories().map((category) {
-                  return CategoryNewsList(category: category);
-                }).toList(),
-          ),
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Chuyên Mục'),
+        bottom:
+            (_tabController != null)
+                ? TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  labelColor: Colors.black,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: Colors.green,
+                  tabs:
+                      categories
+                          .map((category) => Tab(text: category))
+                          .toList(),
+                )
+                : null,
       ),
+      drawer: CategoryDrawer(onCategorySelected: _onCategorySelected),
+      body:
+          (_tabController != null)
+              ? TabBarView(
+                controller: _tabController,
+                children:
+                    categories
+                        .map((category) => CategoryNewsList(category: category))
+                        .toList(),
+              )
+              : const Center(child: CircularProgressIndicator()),
     );
   }
 }
 
-// Widget để hiển thị danh sách tin tức cho mỗi danh mục
-class CategoryNewsList extends StatelessWidget {
+class CategoryNewsList extends StatefulWidget {
   final String category;
 
-  const CategoryNewsList({super.key, required this.category});
+  const CategoryNewsList({Key? key, required this.category}) : super(key: key);
+
+  @override
+  State<CategoryNewsList> createState() => _CategoryNewsListState();
+}
+
+class _CategoryNewsListState extends State<CategoryNewsList> {
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final viewModel = Provider.of<CategoryViewModel>(context, listen: false);
+      if (!viewModel.news.containsKey(widget.category)) {
+        viewModel.fetchNewsByCategory(widget.category);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = Provider.of<CategoryViewModel>(context, listen: false);
-
-    // Đảm bảo chỉ gọi sau khi build hoàn tất
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!viewModel.news.containsKey(category)) {
-        viewModel.fetchNewsByCategory(category);
-      }
-    });
-
     return Consumer<CategoryViewModel>(
       builder: (context, viewModel, child) {
-        if (viewModel.isLoading && !viewModel.news.containsKey(category)) {
-          return Center(child: CircularProgressIndicator());
+        if (viewModel.isLoading &&
+            !viewModel.news.containsKey(widget.category)) {
+          return const Center(child: CircularProgressIndicator());
         }
 
-        final newsList = viewModel.news[category] ?? [];
+        final newsList = viewModel.news[widget.category] ?? [];
+
         if (newsList.isEmpty) {
-          return Center(child: Text('Không tải được tin tức'));
+          return const Center(child: Text('Không tải được tin tức'));
         }
 
         return ListView.builder(
           itemCount: newsList.length,
           itemBuilder: (context, index) {
-            var item = newsList[index];
-            String? imageUrl = _extractImageUrl(item['description'] ?? '');
+            final item = newsList[index];
+            String pubDate = (item["pubDate"]?.split(" ").first) ?? "Thời gian";
 
-            return Card(
-              child: ListTile(
-                leading:
-                    imageUrl != null
-                        ? CachedNetworkImage(
-                          imageUrl: imageUrl,
-                          width: 50,
-                          height: 50,
-                          placeholder:
-                              (context, url) => CircularProgressIndicator(),
-                          errorWidget:
-                              (context, url, error) => Icon(Icons.error),
-                        )
-                        : Icon(Icons.image),
-                title: Text(item['title'] ?? 'Không có tiêu đề'),
-                subtitle: Text(item['pubDate'] ?? 'Không có ngày'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => DetailScreen(item: item),
+            String? imageUrl = _extractImageUrl(item);
+
+            if (imageUrl != null && imageUrl.isNotEmpty) {
+              if (!imageUrl.startsWith('http')) {
+                imageUrl = 'https:$imageUrl';
+              }
+            }
+
+            final bool showImage = imageUrl != null && imageUrl.isNotEmpty;
+
+            return InkWell(
+              onTap: () {
+                if (mounted) {
+                  Future.microtask(() {
+                    context.push('/detail', extra: item);
+                  });
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.fiber_manual_record,
+                                size: 10,
+                                color: Colors.green,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '$pubDate · ${widget.category}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            item['title'] ?? 'Không có tiêu đề',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          if (item['description'] != null)
+                            Text(
+                              _stripHtmlTags(item['description']!),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[800],
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                  );
-                },
+                    if (showImage)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            imageUrl!,
+                            width: 100,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                width: 100,
+                                height: 80,
+                                alignment: Alignment.center,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: 100,
+                                height: 80,
+                                color: Colors.grey[300],
+                                child: const Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             );
           },
@@ -108,10 +251,22 @@ class CategoryNewsList extends StatelessWidget {
     );
   }
 
-  String? _extractImageUrl(String description) {
-    RegExp regExp = RegExp(
-      'https?://[^\\s<>\'\\"\\[\\]]+\\.(?:jpg|jpeg|png|gif)',
-    );
-    return regExp.firstMatch(description)?.group(0);
+  String? _extractImageUrl(Map item) {
+    if (item['enclosure'] != null && item['enclosure'] is Map) {
+      final url = (item['enclosure'] as Map)['url'];
+      if (url != null && url.toString().isNotEmpty) return url.toString();
+    }
+
+    final description = item['description'] ?? '';
+    final regex = RegExp(r'<img[^>]+src="([^"]+)"[^>]*>');
+    final match = regex.firstMatch(description);
+    if (match != null) return match.group(1);
+
+    return null;
+  }
+
+  String _stripHtmlTags(String htmlText) {
+    final document = RegExp(r'<[^>]*>', multiLine: true, caseSensitive: true);
+    return htmlText.replaceAll(document, '');
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class TextFormatter {
   static List<TextSpan> parseFormattedText(String text) {
@@ -60,5 +61,15 @@ class TextFormatter {
     }
 
     return spans;
+  }
+
+  static String formatDateTime(String isoDate) {
+    try {
+      final DateTime dateTime = DateTime.parse(isoDate);
+      final DateFormat formatter = DateFormat('dd/MM/yyyy HH:mm');
+      return formatter.format(dateTime);
+    } catch (e) {
+      return isoDate; // Return original string if parsing fails
+    }
   }
 }
