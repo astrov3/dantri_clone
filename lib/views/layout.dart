@@ -16,7 +16,7 @@ class _LayoutState extends State<Layout> {
     '/home',
     '/category',
     '/video',
-    '/chatbot',
+    '/dantri-ai',
     '/utility',
   ];
 
@@ -61,7 +61,9 @@ class _LayoutState extends State<Layout> {
             label: 'Video',
           ),
           BottomNavigationBarItem(
-            icon: Icon(_selectedIndex == 3 ? Icons.chat : Icons.chat_outlined),
+            icon: Icon(
+              _selectedIndex == 3 ? Icons.smart_toy : Icons.smart_toy_outlined,
+            ),
             label: 'Chatbot',
           ),
           BottomNavigationBarItem(
