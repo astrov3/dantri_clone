@@ -46,7 +46,7 @@ abstract class BaseChatProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Send message to backend
+      // Send message to Dialogflow
       final response = await _chatbotService.sendMessage(message);
       print('Response: $response');
 
@@ -54,60 +54,6 @@ abstract class BaseChatProvider extends ChangeNotifier {
       final botMessage = ChatMessage(
         id: const Uuid().v4(),
         text: response['answer'] ?? 'Xin lỗi, tôi không hiểu câu hỏi của bạn.',
-        isUser: false,
-        timestamp: DateTime.now(),
-        sessionId: sessionId,
-      );
-
-      _messages.add(botMessage);
-    } catch (e) {
-      _error = e.toString();
-
-      // Add error message
-      final errorMessage = ChatMessage(
-        id: const Uuid().v4(),
-        text: 'Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại.',
-        isUser: false,
-        timestamp: DateTime.now(),
-        sessionId: sessionId,
-      );
-
-      _messages.add(errorMessage);
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> sendWebhookMessage(String message) async {
-    if (message.trim().isEmpty) return;
-
-    // Add user message
-    final userMessage = ChatMessage(
-      id: const Uuid().v4(),
-      text: message.trim(),
-      isUser: true,
-      timestamp: DateTime.now(),
-      sessionId: sessionId,
-    );
-
-    _messages.add(userMessage);
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      // Send message via webhook
-      final response = await _chatbotService.sendWebhookMessage(message);
-      print('Webhook Response: $response');
-
-      // Add bot response
-      final botMessage = ChatMessage(
-        id: const Uuid().v4(),
-        text:
-            response['fulfillmentText'] ??
-            response['fulfillmentMessages']?[0]?['text']?['text']?[0] ??
-            'Xin lỗi, tôi không hiểu câu hỏi của bạn.',
         isUser: false,
         timestamp: DateTime.now(),
         sessionId: sessionId,

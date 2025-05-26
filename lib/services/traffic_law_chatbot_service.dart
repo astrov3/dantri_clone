@@ -1,35 +1,29 @@
+import 'package:dialogflow_flutter/dialogflowFlutter.dart';
+import 'package:dialogflow_flutter/language.dart';
+
 import 'base_chatbot_service.dart';
 
 class TrafficLawChatbotService extends BaseChatbotService {
   TrafficLawChatbotService({super.sessionId})
     : super(
-        baseUrl: 'https://legal-chatbot-gah7.onrender.com',
-        endpoint: 'traffic-law',
+        credentialPath: 'assets/traffic-law-credentials.json',
+        language: Language.vietnamese.toString(),
       );
 
   @override
-  Future<Map<String, dynamic>> sendMessage(String message) async {
-    final response = await super.sendMessage(message);
-    print('Response: $response');
-    return {
-      'answer':
-          response['answer'] ?? 'Xin lỗi, tôi không hiểu câu hỏi của bạn.',
-      'confidence': response['confidence'] ?? 0.0,
-      'violationsFound': response['violations_found'] ?? 0,
-      'entities': response['entities'],
-    };
-  }
+  Map<String, dynamic> processDialogflowResponse(AIResponse response) {
+    final baseResponse = super.processDialogflowResponse(response);
 
-  @override
-  Future<Map<String, dynamic>> sendWebhookMessage(String message) async {
-    final response = await super.sendWebhookMessage(message);
-    print('Webhook Response: $response');
+    // Extract additional traffic law specific information
+    final parameters = response.queryResult?.parameters;
+    final intent = response.queryResult?.intent?.displayName ?? '';
+
     return {
-      'answer':
-          response['answer'] ?? 'Xin lỗi, tôi không hiểu câu hỏi của bạn.',
-      'confidence': response['confidence'] ?? 0.0,
-      'violationsFound': response['violations_found'] ?? 0,
-      'entities': response['entities'],
+      ...baseResponse,
+      'confidence': 1.0, // Dialogflow Flutter doesn't provide confidence score
+      'violationsFound': parameters?['violations']?.length ?? 0,
+      'entities': parameters,
+      'intent': intent,
     };
   }
 }

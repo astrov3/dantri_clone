@@ -1,57 +1,81 @@
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
+import 'package:dialogflow_flutter/dialogflowFlutter.dart';
+import 'package:dialogflow_flutter/googleAuth.dart';
 import 'package:uuid/uuid.dart';
 
 abstract class BaseChatbotService {
   final String sessionId;
-  final String baseUrl;
-  final String endpoint;
+  DialogFlow? _dialogflow;
+  final String credentialPath;
+  final String language;
 
   BaseChatbotService({
-    required this.baseUrl,
-    required this.endpoint,
+    required this.credentialPath,
+    required this.language,
     String? sessionId,
   }) : sessionId = sessionId ?? const Uuid().v4();
 
-  Future<Map<String, dynamic>> sendMessage(String message) async {
+  Future<void> initialize() async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/$endpoint/chat'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'message': message}),
-      );
+      final authGoogle = await AuthGoogle(fileJson: credentialPath).build();
+      _dialogflow = DialogFlow(authGoogle: authGoogle, language: language);
+    } catch (e) {
+      print('Error initializing Dialogflow: $e');
+    }
+  }
 
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else {
-        throw Exception('Failed to send message: ${response.statusCode}');
+  Future<Map<String, dynamic>> sendMessage(String message) async {
+    if (_dialogflow == null) {
+      await initialize();
+    }
+    try {
+      final response = await _dialogflow?.detectIntent(message);
+      if (response != null) {
+        return processDialogflowResponse(response);
       }
+      throw Exception('Failed to get response from Dialogflow');
     } catch (e) {
       throw Exception('Error sending message: $e');
     }
   }
 
-  Future<Map<String, dynamic>> sendWebhookMessage(String message) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/$endpoint/webhook'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'queryResult': {'queryText': message},
-          'session': sessionId,
-        }),
-      );
+  Map<String, dynamic> processDialogflowResponse(AIResponse response) {
+    String botReply = response.getMessage() ?? 'Xin lỗi, tôi không hiểu.';
+    List<String> suggestions = [];
+    Map<String, dynamic>? card;
 
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else {
-        throw Exception(
-          'Failed to send webhook message: ${response.statusCode}',
-        );
+    final fulfillmentMessages = response.queryResult?.fulfillmentMessages;
+    if (fulfillmentMessages != null) {
+      for (var msg in fulfillmentMessages) {
+        if (msg is Map<String, dynamic> && msg.containsKey('payload')) {
+          final payload = msg['payload'];
+          if (payload != null && payload['richContent'] != null) {
+            final richContent = payload['richContent'] as List<dynamic>;
+            for (var content in richContent) {
+              for (var item in content) {
+                if (item['type'] == 'text') {
+                  botReply = item['text'] ?? '';
+                }
+                if (item['type'] == 'chips') {
+                  suggestions.addAll(
+                    (item['options'] as List)
+                        .map((opt) => opt['text'].toString())
+                        .toList(),
+                  );
+                } else if (item['type'] == 'card') {
+                  card = item;
+                }
+              }
+            }
+          }
+        }
       }
-    } catch (e) {
-      throw Exception('Error sending webhook message: $e');
     }
+
+    return {
+      'answer': botReply,
+      'suggestions': suggestions,
+      'card': card,
+      'source': 'dialogflow',
+    };
   }
 }
