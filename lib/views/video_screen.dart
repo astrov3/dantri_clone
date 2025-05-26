@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
 import '../viewmodels/video_viewmodel.dart';
 import 'comment_screen.dart';
 
@@ -18,12 +18,14 @@ class CommentDialog extends StatelessWidget {
   final String videoId;
   final String channelTitle;
   final VideoViewModel viewModel;
+  final String currentUserName;
 
   const CommentDialog({
     super.key,
     required this.videoId,
     required this.channelTitle,
     required this.viewModel,
+    required this.currentUserName,
   });
 
   @override
@@ -68,6 +70,16 @@ class _VideoScreenState extends State<VideoScreen>
   final PageController _pageController = PageController();
   late AnimationController _animationController;
   bool _isControlsVisible = true;
+
+  String currentUserName = "";
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Lấy tên tài khoản từ Firebase Auth
+    final user = FirebaseAuth.instance.currentUser;
+    currentUserName = user?.displayName ?? user?.email ?? "Người dùng";
+  }
 
   @override
   void initState() {
@@ -115,10 +127,10 @@ class _VideoScreenState extends State<VideoScreen>
                 videoTitle: videoTitle,
                 channelTitle: channelTitle,
                 viewModel: viewModel,
-              ),
+                currentUserName: currentUserName
             ),
       ),
-    );
+    ));
   }
 
   @override

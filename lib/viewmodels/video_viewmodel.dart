@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-
 import '../services/video_service.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class VideoViewModel extends ChangeNotifier {
   List<Map<String, dynamic>> videos = [];
@@ -8,16 +8,26 @@ class VideoViewModel extends ChangeNotifier {
   bool isLoading = false;
   bool showCaptions = false;
   bool isFetchingMore = false;
-
-  // Danh sách lưu video yêu thích (lưu videoId)
   Set<String> likedVideos = {};
-
-  // Danh sách bình luận cho mỗi video (key: videoId, value: danh sách bình luận)
   Map<String, List<String>> videoComments = {};
-
-  // Thêm biến để lưu trữ bình luận từ API
   Map<String, List<Map<String, dynamic>>> apiComments = {};
   Map<String, bool> isLoadingComments = {};
+
+  Future<String?> signInWithGoogle() async {
+    final GoogleSignIn googleSignIn = GoogleSignIn(
+      scopes: ['https://www.googleapis.com/auth/youtube.force-ssl'],
+    );
+    try {
+      final account = await googleSignIn.signIn();
+      final auth = await account?.authentication;
+      print('Access Token: ${auth?.accessToken}');
+      print('Requested Scopes: ${googleSignIn.scopes}');
+      return auth?.accessToken;
+    } catch (e) {
+      print('Error signing in: $e');
+      return null;
+    }
+  }
 
   void fetchVideos() async {
     isLoading = true;
@@ -26,7 +36,7 @@ class VideoViewModel extends ChangeNotifier {
     try {
       videos = await videoService.getNewsVideos();
     } catch (e) {
-      print('Error: $e');
+      print('Error fetching videos: $e');
     }
 
     isLoading = false;
@@ -53,7 +63,6 @@ class VideoViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Thêm hoặc xóa video khỏi danh sách yêu thích
   void toggleLike(String videoId) {
     if (likedVideos.contains(videoId)) {
       likedVideos.remove(videoId);
@@ -63,14 +72,10 @@ class VideoViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Kiểm tra xem video có được thích hay không
   bool isVideoLiked(String videoId) {
     return likedVideos.contains(videoId);
   }
 
-  // =================== COMMENT ===================
-
-  // Thêm bình luận cho video
   void addComment(String videoId, String comment) {
     if (!videoComments.containsKey(videoId)) {
       videoComments[videoId] = [];
@@ -79,49 +84,95 @@ class VideoViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Lấy danh sách bình luận cho video
   List<Map<String, dynamic>> getComments(String videoId) {
     return apiComments[videoId] ?? [];
   }
 
-  // Phương thức để lấy bình luận từ API
-  Future<void> fetchComments(String videoId) async {
-    if (isLoadingComments[videoId] == true) return;
+  // Improved fetchComments with force refresh option
+  Future<void> fetchComments(String videoId, {bool forceRefresh = false}) async {
+    // If already loading and not forcing refresh, return
+    if (isLoadingComments[videoId] == true && !forceRefresh) return;
 
     isLoadingComments[videoId] = true;
     notifyListeners();
 
     try {
+      print('Fetching comments for video: $videoId');
       final comments = await videoService.getVideoComments(videoId);
+      print('Received ${comments.length} comments for video: $videoId');
+      
       apiComments[videoId] = comments;
+      
+      // Force notify listeners after updating comments
+      isLoadingComments[videoId] = false;
+      notifyListeners();
+      
     } catch (e) {
       print('Error fetching comments: $e');
-    } finally {
       isLoadingComments[videoId] = false;
       notifyListeners();
     }
   }
 
-  // Phương thức để lấy bình luận
-  List<Map<String, dynamic>> getCommentsFromApi(String videoId) {
-    return apiComments[videoId] ?? [];
+  // Clear comments cache for a specific video
+  void clearCommentsCache(String videoId) {
+    apiComments.remove(videoId);
+    isLoadingComments.remove(videoId);
+    print('Cleared comments cache for video: $videoId');
+    notifyListeners();
   }
 
-  // Phương thức để thêm bình luận mới
+  // Improved addCommentFromApi with better error handling and refresh
   Future<void> addCommentFromApi(String videoId, String comment) async {
     try {
-      final newComment = await videoService.postComment(videoId, comment);
-
-      if (!apiComments.containsKey(videoId)) {
-        apiComments[videoId] = [];
+      final accessToken = await signInWithGoogle();
+      if (accessToken == null) {
+        throw Exception('Vui lòng đăng nhập để gửi bình luận');
       }
 
-      // Add the new comment to the list
-      apiComments[videoId]!.insert(0, newComment);
-      notifyListeners();
-    } catch (e) {
-      print('Error posting comment: $e');
-      // You might want to show an error message to the user here
+      print('Posting comment to video: $videoId');
+      // Gửi bình luận lên API
+      await videoService.postComment(videoId, comment, accessToken);
+      print('Comment posted successfully');
+
+      // Clear cache trước khi fetch lại
+      clearCommentsCache(videoId);
+      
+      // Đợi một chút để YouTube xử lý
+      await Future.delayed(const Duration(milliseconds: 1000));
+      
+      // Force refresh comments
+      await fetchComments(videoId, forceRefresh: true);
+      
+      print('Comments refreshed after posting');
+      
+    } catch (e, stack) {
+      print('Error sending comment: $e\n$stack');
+      rethrow;
     }
+  }
+
+  // Method để refresh comments manually
+  Future<void> refreshComments(String videoId) async {
+    clearCommentsCache(videoId);  
+    await fetchComments(videoId, forceRefresh: true);
+  }
+
+  // Get comment count for display
+  int getCommentCount(String videoId) {
+    return apiComments[videoId]?.length ?? 0;
+  }
+
+  // Check if comments are loading
+  bool isCommentsLoading(String videoId) {
+    return isLoadingComments[videoId] ?? false;
+  }
+
+  void addLocalComment(String videoId, Map<String, dynamic> comment) {
+    if (apiComments[videoId] == null) {
+      apiComments[videoId] = [];
+    }
+    apiComments[videoId]!.insert(0, comment);
+    notifyListeners();
   }
 }
