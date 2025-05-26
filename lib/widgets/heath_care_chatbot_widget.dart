@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 import '../models/chat_message.dart';
 import '../providers/healthcare_chat_provider.dart';
@@ -14,12 +15,104 @@ class HeathCareChatbotWidget extends StatefulWidget {
 
 class _HeathCareChatbotWidgetState extends State<HeathCareChatbotWidget> {
   final TextEditingController _textController = TextEditingController();
+  final SpeechToText _speech = SpeechToText();
+  bool _isListening = false;
+  bool _isInitialized = false;
+  String _lastWords = '';
+  String _currentWords = '';
   final List<String> _suggestedQuestions = [
     'Tôi bị đau đầu và sốt, có thể là bệnh gì?',
     'Cách phòng tránh bệnh cúm mùa?',
     'Chế độ ăn cho người tiểu đường?',
     'Các bài tập tốt cho tim mạch?',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeSpeech();
+  }
+
+  Future<void> _initializeSpeech() async {
+    try {
+      _isInitialized = await _speech.initialize(
+        onStatus: (status) {
+          setState(() {
+            _isListening = status == 'listening';
+            if (status == 'done') {
+              _lastWords = _currentWords;
+              _currentWords = '';
+            }
+          });
+        },
+        onError: (error) {
+          _showErrorSnackBar('Lỗi nhận dạng giọng nói: $error');
+        },
+        debugLogging: true,
+      );
+
+      if (!_isInitialized) {
+        _showErrorSnackBar('Không thể khởi tạo nhận dạng giọng nói');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Lỗi khởi tạo: $e');
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _toggleListening() async {
+    if (!_isInitialized) {
+      await _initializeSpeech();
+      if (!_isInitialized) return;
+    }
+
+    if (_isListening) {
+      await _speech.stop();
+      setState(() {
+        _isListening = false;
+        if (_currentWords.isNotEmpty) {
+          _textController.text = _currentWords;
+          _currentWords = '';
+        }
+      });
+    } else {
+      setState(() {
+        _isListening = true;
+        _currentWords = '';
+      });
+
+      await _speech.listen(
+        onResult: (result) {
+          setState(() {
+            _currentWords = result.recognizedWords;
+            if (result.finalResult) {
+              _lastWords = _currentWords;
+              _textController.text = _lastWords;
+              _currentWords = '';
+              _isListening = false;
+              _speech.stop();
+            }
+          });
+        },
+        localeId: 'vi_VN',
+        listenMode: ListenMode.confirmation,
+        partialResults: true,
+        onDevice: true,
+        cancelOnError: true,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,7 +245,7 @@ class _HeathCareChatbotWidgetState extends State<HeathCareChatbotWidget> {
                     child: InkWell(
                       onTap: () {
                         _textController.text = question;
-                        _sendMessage();
+                        _sendMessage;
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -266,54 +359,92 @@ class _HeathCareChatbotWidgetState extends State<HeathCareChatbotWidget> {
         color: Colors.white,
         border: Border(top: BorderSide(color: Color(0xFF4CAF50), width: 1)),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          IconButton(
-            icon: const Icon(Icons.mic, color: Color(0xFF4CAF50)),
-            onPressed: () {},
-          ),
-          Expanded(
-            child: TextField(
-              controller: _textController,
-              decoration: InputDecoration(
-                hintText: 'Nhập câu hỏi tại đây...',
-                hintStyle: const TextStyle(color: Colors.grey),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                  borderSide: const BorderSide(color: Color(0xFF4CAF50)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                  borderSide: const BorderSide(color: Color(0xFF4CAF50)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF4CAF50),
-                    width: 2,
+          if (_isListening)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              width: double.infinity,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _currentWords.isEmpty
+                      ? const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF4CAF50),
+                      )
+                      : Container(),
+                  Text(
+                    _currentWords.isEmpty ? 'Đang lắng nghe...' : _currentWords,
+                    style: const TextStyle(
+                      color: Color(0xFF4CAF50),
+                      fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
+                ],
+              ),
+            ),
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(
+                  _isListening ? Icons.mic : Icons.mic_none,
+                  color: Color(0xFF4CAF50),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
+                onPressed: _toggleListening,
+              ),
+              Expanded(
+                child: TextField(
+                  controller: _textController,
+                  decoration: InputDecoration(
+                    hintText: 'Nhập câu hỏi tại đây...',
+                    hintStyle: const TextStyle(color: Colors.grey),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(25),
+                      borderSide: const BorderSide(color: Color(0xFF4CAF50)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(25),
+                      borderSide: const BorderSide(color: Color(0xFF4CAF50)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(25),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF4CAF50),
+                        width: 2,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  onSubmitted: _sendMessage,
+                  enabled: !provider.isLoading,
                 ),
               ),
-              onSubmitted: (_) => _sendMessage(),
-              enabled: !provider.isLoading,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.send, color: Color(0xFF4CAF50)),
-            onPressed: provider.isLoading ? null : _sendMessage,
+              IconButton(
+                icon: const Icon(Icons.send, color: Color(0xFF4CAF50)),
+                onPressed:
+                    provider.isLoading
+                        ? null
+                        : () => _sendMessage(_textController.text),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Future<void> _sendMessage() async {
-    final message = _textController.text.trim();
-    if (message.isEmpty) return;
+  Future<void> _sendMessage(String messageIp) async {
+    if (messageIp.trim().isEmpty) return;
+    var message = _textController.text.trim();
+    if (message.isEmpty && messageIp.isEmpty) return;
+    message = message.isEmpty ? messageIp : message;
 
     _textController.clear();
     await context.read<HealthCareChatProvider>().sendMessage(message);
@@ -321,6 +452,7 @@ class _HeathCareChatbotWidgetState extends State<HeathCareChatbotWidget> {
 
   @override
   void dispose() {
+    _speech.stop();
     _textController.dispose();
     super.dispose();
   }
