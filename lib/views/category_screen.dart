@@ -1,19 +1,20 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // để dùng listEquals
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../viewmodels/category_viewmodel.dart';
 import '../widgets/category_drawer.dart';
-import 'detail_screen.dart';
 
 class CategoryScreen extends StatefulWidget {
-  const CategoryScreen({Key? key}) : super(key: key);
+  const CategoryScreen({super.key});
 
   @override
   State<CategoryScreen> createState() => _CategoryScreenState();
 }
 
-class _CategoryScreenState extends State<CategoryScreen> with TickerProviderStateMixin {
+class _CategoryScreenState extends State<CategoryScreen>
+    with TickerProviderStateMixin {
   TabController? _tabController;
   List<String> categories = [];
 
@@ -62,26 +63,32 @@ class _CategoryScreenState extends State<CategoryScreen> with TickerProviderStat
     return Scaffold(
       appBar: AppBar(
         title: const Text('Chuyên Mục'),
-        bottom: (_tabController != null)
-            ? TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                labelColor: Colors.black,
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: Colors.green,
-                tabs: categories.map((category) => Tab(text: category)).toList(),
-              )
-            : null,
+        bottom:
+            (_tabController != null)
+                ? TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  labelColor: Colors.black,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: Colors.green,
+                  tabs:
+                      categories
+                          .map((category) => Tab(text: category))
+                          .toList(),
+                )
+                : null,
       ),
       drawer: CategoryDrawer(onCategorySelected: _onCategorySelected),
-      body: (_tabController != null)
-          ? TabBarView(
-              controller: _tabController,
-              children: categories
-                  .map((category) => CategoryNewsList(category: category))
-                  .toList(),
-            )
-          : const Center(child: CircularProgressIndicator()),
+      body:
+          (_tabController != null)
+              ? TabBarView(
+                controller: _tabController,
+                children:
+                    categories
+                        .map((category) => CategoryNewsList(category: category))
+                        .toList(),
+              )
+              : const Center(child: CircularProgressIndicator()),
     );
   }
 }
@@ -112,7 +119,8 @@ class _CategoryNewsListState extends State<CategoryNewsList> {
   Widget build(BuildContext context) {
     return Consumer<CategoryViewModel>(
       builder: (context, viewModel, child) {
-        if (viewModel.isLoading && !viewModel.news.containsKey(widget.category)) {
+        if (viewModel.isLoading &&
+            !viewModel.news.containsKey(widget.category)) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -142,17 +150,15 @@ class _CategoryNewsListState extends State<CategoryNewsList> {
               onTap: () {
                 if (mounted) {
                   Future.microtask(() {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => DetailScreen(item: item),
-                      ),
-                    );
+                    context.push('/detail', extra: item);
                   });
                 }
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -170,7 +176,10 @@ class _CategoryNewsListState extends State<CategoryNewsList> {
                               const SizedBox(width: 6),
                               Text(
                                 '$pubDate · ${widget.category}',
-                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
                               ),
                             ],
                           ),
@@ -189,7 +198,10 @@ class _CategoryNewsListState extends State<CategoryNewsList> {
                               _stripHtmlTags(item['description']!),
                               maxLines: 3,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[800],
+                              ),
                             ),
                         ],
                       ),
@@ -210,7 +222,9 @@ class _CategoryNewsListState extends State<CategoryNewsList> {
                                 width: 100,
                                 height: 80,
                                 alignment: Alignment.center,
-                                child: const CircularProgressIndicator(strokeWidth: 2),
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               );
                             },
                             errorBuilder: (context, error, stackTrace) {
