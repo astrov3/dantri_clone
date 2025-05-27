@@ -1,5 +1,5 @@
 import 'package:dialogflow_flutter/dialogflowFlutter.dart';
-import 'package:dialogflow_flutter/language.dart';
+// import 'package:dialogflow_flutter/language.dart';
 
 import 'base_chatbot_service.dart';
 
@@ -7,7 +7,7 @@ class HealthCareChatbotService extends BaseChatbotService {
   HealthCareChatbotService({super.sessionId})
     : super(
         credentialPath: 'assets/health-care-credentials.json',
-        language: Language.vietnamese.toString(),
+        language: 'vi',
       );
 
   @override
