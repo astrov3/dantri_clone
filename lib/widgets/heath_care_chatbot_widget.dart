@@ -120,10 +120,14 @@ class _HeathCareChatbotWidgetState extends State<HeathCareChatbotWidget> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
+        foregroundColor: Color(0xFF4CAF50),
         elevation: 1,
+        iconTheme: const IconThemeData(color: Color(0xFF4CAF50)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF4CAF50)),
-          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_ios_new),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
         ),
         title: const Text(
           'Dantri AI Chat',
@@ -139,7 +143,6 @@ class _HeathCareChatbotWidgetState extends State<HeathCareChatbotWidget> {
             onPressed: () {},
           ),
         ],
-        iconTheme: const IconThemeData(color: Color(0xFF4CAF50)),
       ),
       body: Consumer<HealthCareChatProvider>(
         builder: (context, provider, child) {

@@ -1,3 +1,4 @@
+import 'package:dantri_clone/viewmodels/news_viewmodel.dart';
 import 'package:dantri_clone/views/category_screen.dart';
 import 'package:dantri_clone/views/comment_screen.dart';
 import 'package:dantri_clone/views/dantri_ai_screen.dart';
@@ -18,6 +19,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/healthcare_chat_provider.dart';
 import '../providers/traffic_law_chat_provider.dart';
+import '../viewmodels/category_viewmodel.dart';
 import '../viewmodels/video_viewmodel.dart';
 
 class AppRouter {
@@ -42,7 +44,11 @@ class AppRouter {
           ),
           GoRoute(
             path: '/category',
-            builder: (context, state) => const CategoryScreen(),
+            builder:
+                (context, state) => ChangeNotifierProvider(
+                  create: (_) => CategoryViewModel(),
+                  child: const CategoryScreen(),
+                ),
           ),
           GoRoute(
             path: '/video',
@@ -65,7 +71,11 @@ class AppRouter {
       // Các route không nằm trong ShellRoute
       GoRoute(
         path: '/dantri-ai/news-24h',
-        builder: (context, state) => const News24hWidget(),
+        builder:
+            (context, state) => ChangeNotifierProvider(
+              create: (_) => NewsViewModel()..fetchNews(),
+              child: const News24hWidget(),
+            ),
       ),
       GoRoute(
         path: '/dantri-ai/traffic-law',

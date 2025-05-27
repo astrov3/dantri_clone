@@ -125,6 +125,12 @@ class _TrafficLawChatbotWidgetState extends State<TrafficLawChatbotWidget> {
         foregroundColor: Color(0xFF4CAF50),
         elevation: 1,
         iconTheme: const IconThemeData(color: Color(0xFF4CAF50)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
       ),
       body: Consumer<TrafficLawChatProvider>(
         builder: (context, provider, child) {

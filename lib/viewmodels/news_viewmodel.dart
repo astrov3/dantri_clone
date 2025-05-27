@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:webfeed/webfeed.dart'; // để dùng RssItem
+
 import '../services/news_service.dart';
 
 class NewsViewModel extends ChangeNotifier {
@@ -17,12 +18,17 @@ class NewsViewModel extends ChangeNotifier {
 
     try {
       List<RssItem> rssItems = await newsService.getNews();
-      news = rssItems.map((rssItem) => {
-            'title': rssItem.title ?? 'Không có tiêu đề',
-            'link': rssItem.link ?? '',
-            'description': rssItem.description ?? '',
-            'pubDate': rssItem.pubDate?.toString() ?? 'Không có ngày',
-          }).toList();
+      news =
+          rssItems
+              .map(
+                (rssItem) => {
+                  'title': rssItem.title ?? 'Không có tiêu đề',
+                  'link': rssItem.link ?? '',
+                  'description': rssItem.description ?? '',
+                  'pubDate': rssItem.pubDate?.toString() ?? 'Không có ngày',
+                },
+              )
+              .toList();
 
       filteredNews = news; // ban đầu hiển thị tất cả
     } catch (e) {
@@ -40,11 +46,12 @@ class NewsViewModel extends ChangeNotifier {
     if (searchQuery.isEmpty) {
       filteredNews = news;
     } else {
-      filteredNews = news.where((item) {
-        final title = item['title']?.toLowerCase() ?? '';
-        final desc = item['description']?.toLowerCase() ?? '';
-        return title.contains(searchQuery) || desc.contains(searchQuery);
-      }).toList();
+      filteredNews =
+          news.where((item) {
+            final title = item['title']?.toLowerCase() ?? '';
+            final desc = item['description']?.toLowerCase() ?? '';
+            return title.contains(searchQuery) || desc.contains(searchQuery);
+          }).toList();
     }
     notifyListeners();
   }

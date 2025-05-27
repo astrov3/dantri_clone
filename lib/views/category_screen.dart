@@ -137,7 +137,7 @@ class _CategoryScreenState extends State<CategoryScreen>
 class CategoryNewsList extends StatefulWidget {
   final String category;
 
-  const CategoryNewsList({Key? key, required this.category}) : super(key: key);
+  const CategoryNewsList({super.key, required this.category});
 
   @override
   State<CategoryNewsList> createState() => _CategoryNewsListState();
