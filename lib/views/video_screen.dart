@@ -1,10 +1,12 @@
 import 'dart:ui';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import '../viewmodels/video_viewmodel.dart';
 
 class VideoScreen extends StatefulWidget {
@@ -71,6 +73,7 @@ class _VideoScreenState extends State<VideoScreen>
   late AnimationController _animationController;
   bool _isControlsVisible = true;
   YoutubePlayerController? _youtubeController;
+  YoutubePlayerController? _youtubeController;
 
   String currentUserName = "";
 
@@ -133,20 +136,32 @@ class _VideoScreenState extends State<VideoScreen>
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.black,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.black,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarContrastEnforced: false,
+      ),
+    );
+
     return ChangeNotifierProvider(
       create: (_) => VideoViewModel()..fetchVideos(),
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: Consumer<VideoViewModel>(
-          builder: (context, viewModel, _) {
-            if (viewModel.isLoading) {
-              return const Center(
-                child: CircularProgressIndicator(color: Colors.green),
-              );
-            }
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: Consumer<VideoViewModel>(
+            builder: (context, viewModel, _) {
+              if (viewModel.isLoading) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.green),
+                );
+              }
 
-            return SafeArea(
-              child: PageView.builder(
+              return PageView.builder(
                 controller: _pageController,
                 scrollDirection: Axis.vertical,
                 itemCount: viewModel.videos.length,
@@ -330,9 +345,9 @@ class _VideoScreenState extends State<VideoScreen>
                     ),
                   );
                 },
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
