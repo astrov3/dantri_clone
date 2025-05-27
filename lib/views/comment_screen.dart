@@ -6,7 +6,6 @@ class CommentScreen extends StatefulWidget {
   final String videoId;
   final String videoTitle;
   final String channelTitle;
-  final VideoViewModel viewModel;
   final String currentUserName;
 
   const CommentScreen({
@@ -14,7 +13,6 @@ class CommentScreen extends StatefulWidget {
     required this.videoId,
     required this.videoTitle,
     required this.channelTitle,
-    required this.viewModel,
     required this.currentUserName,
   });
 
@@ -359,10 +357,10 @@ class _CommentScreenState extends State<CommentScreen>
 
                           try {
                             // Gửi comment lên YouTube (đã bao gồm refresh trong method)
-                            await widget.viewModel.addCommentFromApi(widget.videoId, comment);
+                            await context.read<VideoViewModel>().addCommentFromApi(widget.videoId, comment);
 
                             // Thêm bình luận mới vào danh sách tạm thời để hiển thị ngay
-                            widget.viewModel.addLocalComment(widget.videoId, {
+                            context.read<VideoViewModel>().addLocalComment(widget.videoId, {
                               "snippet": {
                                 "topLevelComment": {
                                   "snippet": {
