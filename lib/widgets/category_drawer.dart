@@ -58,6 +58,10 @@ class CategoryDrawer extends StatelessWidget {
     final categories = categoryUrls.keys.toList();
 
     return Drawer(
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.horizontal(right: Radius.circular(16)),
+      ),
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
