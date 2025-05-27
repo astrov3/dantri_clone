@@ -49,12 +49,35 @@ class _CategoryScreenState extends State<CategoryScreen>
   }
 
   void _onCategorySelected(String category, String rssUrl) {
+    // Tải dữ liệu cho category được chọn
+    final viewModel = Provider.of<CategoryViewModel>(context, listen: false);
+
+    // Thêm category vào danh sách nếu chưa có
+    if (!categories.contains(category)) {
+      categories.add(category);
+
+      // Tạo lại TabController với số lượng tab mới
+      _tabController?.dispose();
+      _tabController = TabController(length: categories.length, vsync: this);
+
+      // Rebuild widget
+      if (mounted) {
+        setState(() {});
+      }
+    }
+
+    // Tải tin tức cho category này
+    viewModel.fetchNewsByCategory(category);
+
+    // Chuyển đến tab tương ứng
     final index = categories.indexOf(category);
     if (index != -1 && _tabController != null) {
       _tabController!.animateTo(index);
     }
+
+    // Đóng drawer
     if (mounted) {
-      Future.microtask(() => Navigator.pop(context));
+      Navigator.pop(context);
     }
   }
 
@@ -64,7 +87,7 @@ class _CategoryScreenState extends State<CategoryScreen>
       appBar: AppBar(
         title: const Text('Chuyên Mục'),
         bottom:
-            (_tabController != null)
+            (_tabController != null && categories.isNotEmpty)
                 ? TabBar(
                   controller: _tabController,
                   isScrollable: true,
@@ -80,7 +103,7 @@ class _CategoryScreenState extends State<CategoryScreen>
       ),
       drawer: CategoryDrawer(onCategorySelected: _onCategorySelected),
       body:
-          (_tabController != null)
+          (_tabController != null && categories.isNotEmpty)
               ? TabBarView(
                 controller: _tabController,
                 children:
@@ -88,7 +111,19 @@ class _CategoryScreenState extends State<CategoryScreen>
                         .map((category) => CategoryNewsList(category: category))
                         .toList(),
               )
-              : const Center(child: CircularProgressIndicator()),
+              : const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.menu_book, size: 64, color: Colors.grey),
+                    SizedBox(height: 16),
+                    Text(
+                      'Chọn chuyên mục từ menu để xem tin tức',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
     );
   }
 }
@@ -102,7 +137,11 @@ class CategoryNewsList extends StatefulWidget {
   State<CategoryNewsList> createState() => _CategoryNewsListState();
 }
 
-class _CategoryNewsListState extends State<CategoryNewsList> {
+class _CategoryNewsListState extends State<CategoryNewsList>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true; // Giữ state khi chuyển tab
+
   @override
   void initState() {
     super.initState();
@@ -117,135 +156,237 @@ class _CategoryNewsListState extends State<CategoryNewsList> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Cần thiết cho AutomaticKeepAliveClientMixin
+
     return Consumer<CategoryViewModel>(
       builder: (context, viewModel, child) {
+        // Hiển thị loading khi đang tải và chưa có dữ liệu
         if (viewModel.isLoading &&
             !viewModel.news.containsKey(widget.category)) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Đang tải tin tức...'),
+              ],
+            ),
+          );
         }
 
         final newsList = viewModel.news[widget.category] ?? [];
 
         if (newsList.isEmpty) {
-          return const Center(child: Text('Không tải được tin tức'));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.info_outline, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(
+                  'Không có tin tức cho chuyên mục ${widget.category}',
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    viewModel.fetchNewsByCategory(widget.category);
+                  },
+                  child: const Text('Thử lại'),
+                ),
+              ],
+            ),
+          );
         }
 
-        return ListView.builder(
-          itemCount: newsList.length,
-          itemBuilder: (context, index) {
-            final item = newsList[index];
-            String pubDate = (item["pubDate"]?.split(" ").first) ?? "Thời gian";
+        return RefreshIndicator(
+          onRefresh: () async {
+            viewModel.fetchNewsByCategory(widget.category);
+          },
+          child: ListView.builder(
+            padding: const EdgeInsets.all(8),
+            itemCount: newsList.length,
+            itemBuilder: (context, index) {
+              final item = newsList[index];
+              String pubDate =
+                  (item["pubDate"]?.split(" ").first) ?? "Thời gian";
 
-            String? imageUrl = _extractImageUrl(item);
+              String? imageUrl = _extractImageUrl(item);
 
-            if (imageUrl != null && imageUrl.isNotEmpty) {
-              if (!imageUrl.startsWith('http')) {
-                imageUrl = 'https:$imageUrl';
-              }
-            }
-
-            final bool showImage = imageUrl != null && imageUrl.isNotEmpty;
-
-            return InkWell(
-              onTap: () {
-                if (mounted) {
-                  Future.microtask(() {
-                    context.push('/detail', extra: item);
-                  });
+              if (imageUrl != null && imageUrl.isNotEmpty) {
+                if (!imageUrl.startsWith('http')) {
+                  imageUrl = 'https:$imageUrl';
                 }
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+              }
+
+              final bool showImage = imageUrl != null && imageUrl.isNotEmpty;
+
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.fiber_manual_record,
-                                size: 10,
-                                color: Colors.green,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                '$pubDate · ${widget.category}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
+                child: InkWell(
+                  onTap: () {
+                    if (mounted) {
+                      context.push('/detail', extra: item);
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Hiển thị hình ảnh lớn ở đầu (nếu có)
+                      if (showImage)
+                        ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
                           ),
-                          const SizedBox(height: 6),
-                          Text(
-                            item['title'] ?? 'Không có tiêu đề',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          if (item['description'] != null)
-                            Text(
-                              _stripHtmlTags(item['description']!),
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[800],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (showImage)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
                           child: Image.network(
                             imageUrl!,
-                            width: 100,
-                            height: 80,
+                            width: double.infinity,
+                            height: 200,
                             fit: BoxFit.cover,
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
                               return Container(
-                                width: 100,
-                                height: 80,
-                                alignment: Alignment.center,
-                                child: const CircularProgressIndicator(
-                                  strokeWidth: 2,
+                                width: double.infinity,
+                                height: 200,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[200],
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(12),
+                                    topRight: Radius.circular(12),
+                                  ),
+                                ),
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 3,
+                                  ),
                                 ),
                               );
                             },
                             errorBuilder: (context, error, stackTrace) {
                               return Container(
-                                width: 100,
-                                height: 80,
-                                color: Colors.grey[300],
-                                child: const Icon(
-                                  Icons.broken_image,
-                                  color: Colors.grey,
+                                width: double.infinity,
+                                height: 200,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(12),
+                                    topRight: Radius.circular(12),
+                                  ),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.broken_image,
+                                      color: Colors.grey[600],
+                                      size: 48,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Không thể tải hình ảnh',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               );
                             },
                           ),
                         ),
+
+                      // Nội dung tin tức
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Tag chuyên mục và thời gian
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: Colors.green.withOpacity(0.3),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    widget.category,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Icon(
+                                  Icons.access_time,
+                                  size: 14,
+                                  color: Colors.grey[600],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  pubDate,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Tiêu đề tin tức
+                            Text(
+                              item['title'] ?? 'Không có tiêu đề',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                                height: 1.3,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+
+                            // Mô tả tin tức
+                            if (item['description'] != null)
+                              Text(
+                                _stripHtmlTags(item['description']!),
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[700],
+                                  height: 1.5,
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         );
       },
     );
