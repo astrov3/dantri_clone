@@ -94,6 +94,12 @@ class _CategoryScreenState extends State<CategoryScreen>
                   labelColor: Colors.black,
                   unselectedLabelColor: Colors.grey,
                   indicatorColor: Colors.green,
+                  indicatorPadding: EdgeInsets.zero,
+                  tabAlignment: TabAlignment.start,
+                  labelStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                   tabs:
                       categories
                           .map((category) => Tab(text: category))
@@ -205,8 +211,12 @@ class _CategoryNewsListState extends State<CategoryNewsList>
           onRefresh: () async {
             viewModel.fetchNewsByCategory(widget.category);
           },
+          color: Colors.white,
+          backgroundColor: Colors.green,
+          strokeWidth: 3,
           child: ListView.builder(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.only(left: 8, right: 8, bottom: 8),
+            physics: const AlwaysScrollableScrollPhysics(),
             itemCount: newsList.length,
             itemBuilder: (context, index) {
               final item = newsList[index];
@@ -224,8 +234,9 @@ class _CategoryNewsListState extends State<CategoryNewsList>
               final bool showImage = imageUrl != null && imageUrl.isNotEmpty;
 
               return Card(
-                margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                elevation: 2,
+                color: Colors.white,
+                margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -247,7 +258,7 @@ class _CategoryNewsListState extends State<CategoryNewsList>
                             topRight: Radius.circular(12),
                           ),
                           child: Image.network(
-                            imageUrl!,
+                            imageUrl,
                             width: double.infinity,
                             height: 200,
                             fit: BoxFit.cover,
@@ -305,81 +316,78 @@ class _CategoryNewsListState extends State<CategoryNewsList>
                         ),
 
                       // Nội dung tin tức
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Tag chuyên mục và thời gian
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: Colors.green.withOpacity(0.3),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    widget.category,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Tag chuyên mục và thời gian
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.green.withOpacity(0.3),
+                                    width: 1,
                                   ),
                                 ),
-                                const SizedBox(width: 10),
-                                Icon(
-                                  Icons.access_time,
-                                  size: 14,
-                                  color: Colors.grey[600],
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  pubDate,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                    fontWeight: FontWeight.w500,
+                                child: Text(
+                                  widget.category,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Tiêu đề tin tức
-                            Text(
-                              item['title'] ?? 'Không có tiêu đề',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                                height: 1.3,
                               ),
-                            ),
-                            const SizedBox(height: 8),
-
-                            // Mô tả tin tức
-                            if (item['description'] != null)
+                              const SizedBox(width: 10),
+                              Icon(
+                                Icons.access_time,
+                                size: 14,
+                                color: Colors.grey[600],
+                              ),
+                              const SizedBox(width: 4),
                               Text(
-                                _stripHtmlTags(item['description']!),
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
+                                pubDate,
                                 style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[700],
-                                  height: 1.5,
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                          ],
-                        ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+
+                          // Tiêu đề tin tức
+                          Text(
+                            item['title'] ?? 'Không có tiêu đề',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                              height: 1.3,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+
+                          // Mô tả tin tức
+                          if (item['description'] != null)
+                            Text(
+                              _stripHtmlTags(item['description']!),
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[700],
+                                height: 1.5,
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
