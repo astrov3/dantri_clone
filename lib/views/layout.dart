@@ -18,10 +18,17 @@ class _LayoutState extends State<Layout> {
     '/category',
     '/video',
     '/dantri-ai',
+    '/dantri-ai',
     '/utility',
   ];
 
   void _onItemTapped(int index) {
+    if (_selectedIndex != index) {
+      context.go(_routes[index]);
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
     if (_selectedIndex != index) {
       context.go(_routes[index]);
       setState(() {
@@ -65,12 +72,13 @@ class _LayoutState extends State<Layout> {
 
   @override
   Widget build(BuildContext context) {
+    final isVideoRoute = _selectedIndex == 2;
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
         body: widget.child,
         bottomNavigationBar: BottomNavigationBar(
-          backgroundColor: Colors.white,
+        backgroundColor: isVideoRoute ? Colors.black : Colors.white,
           items: [
             BottomNavigationBarItem(
               icon: Icon(
@@ -112,8 +120,8 @@ class _LayoutState extends State<Layout> {
             ),
           ],
           currentIndex: _selectedIndex,
-          selectedItemColor: Colors.green,
-          unselectedItemColor: Colors.grey,
+        selectedItemColor: isVideoRoute ? Colors.white : Colors.green,
+        unselectedItemColor: isVideoRoute ? Colors.grey : Colors.grey,
           onTap: _onItemTapped,
           type: BottomNavigationBarType.fixed,
         ),

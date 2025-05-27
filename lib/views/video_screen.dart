@@ -1,6 +1,8 @@
 import 'dart:ui';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
@@ -18,12 +20,14 @@ class CommentDialog extends StatelessWidget {
   final String videoId;
   final String channelTitle;
   final VideoViewModel viewModel;
+  final String currentUserName;
 
   const CommentDialog({
     super.key,
     required this.videoId,
     required this.channelTitle,
     required this.viewModel,
+    required this.currentUserName,
   });
 
   @override
@@ -70,6 +74,19 @@ class _VideoScreenState extends State<VideoScreen>
   bool _isControlsVisible = true;
   YoutubePlayerController? _youtubeController;
 
+  String currentUserName = "";
+  String currentUserAvatar = "";
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Lấy tên tài khoản từ Firebase Auth
+    final user = FirebaseAuth.instance.currentUser;
+    currentUserName = user?.displayName ?? user?.displayName ?? "Người dùng";
+    currentUserAvatar = user?.photoURL ??
+        "https://via.placeholder.com/40"; // Avatar mặc định nếu không có
+  }
+
   @override
   void initState() {
     super.initState();
@@ -85,29 +102,6 @@ class _VideoScreenState extends State<VideoScreen>
     _animationController.dispose();
     _youtubeController?.dispose();
     super.dispose();
-  }
-
-  void _initYoutubeController(String videoId) {
-    _youtubeController?.dispose();
-    _youtubeController = YoutubePlayerController(
-      initialVideoId: videoId,
-      flags: const YoutubePlayerFlags(
-        autoPlay: true,
-        mute: false,
-        loop: true,
-        useHybridComposition: true,
-        showLiveFullscreenButton: false,
-      ),
-    );
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final location = GoRouterState.of(context).matchedLocation;
-    if (!location.startsWith('/video')) {
-      _youtubeController?.pause();
-    }
   }
 
   void _toggleControls() {
@@ -135,26 +129,53 @@ class _VideoScreenState extends State<VideoScreen>
         'videoId': videoId,
         'channelTitle': channelTitle,
         'videoTitle': videoTitle,
+        'viewModel': viewModel,
+        'currentUserName': currentUserName,
+        'currentUserAvatar': currentUserAvatar,
       },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.black,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.black,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarContrastEnforced: false,
+      ),
+    );
+
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.black,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.black,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarContrastEnforced: false,
+      ),
+    );
+
     return ChangeNotifierProvider(
       create: (_) => VideoViewModel()..fetchVideos(),
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: Consumer<VideoViewModel>(
-          builder: (context, viewModel, _) {
-            if (viewModel.isLoading) {
-              return const Center(
-                child: CircularProgressIndicator(color: Colors.green),
-              );
-            }
+      child: SafeArea(
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: Consumer<VideoViewModel>(
+            builder: (context, viewModel, _) {
+              if (viewModel.isLoading) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.green),
+                );
+              }
 
-            return SafeArea(
-              child: PageView.builder(
+              return PageView.builder(
                 controller: _pageController,
                 scrollDirection: Axis.vertical,
                 itemCount: viewModel.videos.length,
@@ -338,9 +359,9 @@ class _VideoScreenState extends State<VideoScreen>
                     ),
                   );
                 },
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

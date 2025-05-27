@@ -27,11 +27,43 @@ class VideoService {
   }) async {
     final response = await http.get(
       Uri.parse(
-        '$baseUrl?part=snippet&q=tin+tức+việt+nam&type=video&maxResults=10'
-        '&order=date&videoLicense=creativeCommon&key=$apiKey'
+        '$baseUrl?part=snippet&q=tin+tức+việt+nam+mới+nhất+hôm+nay&type=video&maxResults=10'
+        '&order=date&key=$apiKey'
         '${nextPageToken != null ? '&pageToken=$nextPageToken' : ''}',
       ),
     );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      nextPageToken = data['nextPageToken'];
+      final items = data['items'] as List<dynamic>;
+      return List<Map<String, dynamic>>.from(items);
+    } else {
+      throw Exception(
+        'Failed to load videos: ${response.statusCode} - ${response.body}',
+      );
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> searchVideos(String query) async {
+    final response = await http.get(
+      Uri.parse(
+        '$baseUrl?part=snippet&q=$query&type=video&maxResults=10&order=relevance&key=$apiKey'
+        '${nextPageToken != null ? '&pageToken=$nextPageToken' : ''}',
+      ),
+    );
+
+    if (response.statusCode == 429) {
+      // Quota exceeded, try to load cached data
+      final cachedData = await cacheManager.getSingleFile(baseUrl);
+      if (cachedData != null) {
+        final data = jsonDecode(cachedData.readAsStringSync());
+        nextPageToken = data['nextPageToken'];
+        final items = data['items'] as List<dynamic>;
+        return List<Map<String, dynamic>>.from(items);
+      } else {
+        throw Exception('Quota exceeded and no cached data available');
+      }
+    }
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -39,7 +71,9 @@ class VideoService {
       final items = data['items'] as List<dynamic>;
       return List<Map<String, dynamic>>.from(items);
     } else {
-      throw Exception('Failed to load videos');
+      throw Exception(
+        'Failed to load videos: ${response.statusCode} - ${response.body}',
+      );
     }
   }
 
@@ -55,18 +89,24 @@ class VideoService {
       final items = data['items'] as List<dynamic>;
       return List<Map<String, dynamic>>.from(items);
     } else {
-      throw Exception('Failed to load comments');
+      throw Exception(
+        'Failed to load comments: ${response.statusCode} - ${response.body}',
+      );
     }
   }
-
 
   Future<Map<String, dynamic>> postComment(
     String videoId,
     String comment,
+    String accessToken,
   ) async {
     final response = await http.post(
-      Uri.parse('$commentsUrl?part=snippet&key=$apiKey'),
-      headers: {'Content-Type': 'application/json'},
+      Uri.parse('$commentsUrl?part=snippet'),
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
       body: jsonEncode({
         'snippet': {
           'videoId': videoId,
@@ -77,10 +117,43 @@ class VideoService {
       }),
     );
 
-    if (response.statusCode == 200) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      print('Comment posted successfully: ${response.body}');
       return jsonDecode(response.body);
     } else {
-      throw Exception('Failed to post comment');
+      print(
+        'Error posting comment: Status ${response.statusCode}, Body: ${response.body}',
+      );
+      throw Exception(
+        'Failed to post comment: ${response.statusCode} - ${response.body}',
+      );
+    }
+  }
+
+  Future<bool> isCommentAllowed(String videoId) async {
+    final response = await http.get(
+      Uri.parse(
+        'https://www.googleapis.com/youtube/v3/videos?part=status&id=$videoId&key=$apiKey',
+      ),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['items'] != null && data['items'].isNotEmpty) {
+        final video = data['items'][0];
+        final status = video['status'];
+        if (status != null && status.containsKey('commentAllowed')) {
+          return status['commentAllowed'];
+        } else {
+          return true; // Giả định bình luận được bật nếu không có field
+        }
+      }
+      return false;
+    } else {
+      print(
+        'Error checking comment status: Status ${response.statusCode}, Body: ${response.body}',
+      );
+      return false;
     }
   }
 }
