@@ -1,5 +1,5 @@
 import 'package:dialogflow_flutter/dialogflowFlutter.dart';
-import 'package:dialogflow_flutter/language.dart';
+// import 'package:dialogflow_flutter/language.dart';
 
 import 'base_chatbot_service.dart';
 
@@ -7,7 +7,7 @@ class TrafficLawChatbotService extends BaseChatbotService {
   TrafficLawChatbotService({super.sessionId})
     : super(
         credentialPath: 'assets/traffic-law-credentials.json',
-        language: Language.vietnamese.toString(),
+        language: 'vi',
       );
 
   @override
