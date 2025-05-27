@@ -46,5 +46,5 @@ app.*.map.json
 
 
 # Google Cloud Credential files
-traffic-law-credentials.json
-health-care-credentials.json
+assets/traffic-law-credentials.json
+assets/health-care-credentials.json
