@@ -12,7 +12,6 @@ class Layout extends StatefulWidget {
 class _LayoutState extends State<Layout> {
   int _selectedIndex = 0;
   DateTime? _lastBackPressed;
-  DateTime? _lastBackPressed;
 
   final List<String> _routes = [
     '/home',
@@ -73,12 +72,13 @@ class _LayoutState extends State<Layout> {
 
   @override
   Widget build(BuildContext context) {
+    final isVideoRoute = _selectedIndex == 2;
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
         body: widget.child,
         bottomNavigationBar: BottomNavigationBar(
-          backgroundColor: Colors.white,
+        backgroundColor: isVideoRoute ? Colors.black : Colors.white,
           items: [
             BottomNavigationBarItem(
               icon: Icon(
@@ -120,54 +120,11 @@ class _LayoutState extends State<Layout> {
             ),
           ],
           currentIndex: _selectedIndex,
-          selectedItemColor: Colors.green,
-          unselectedItemColor: Colors.grey,
+        selectedItemColor: isVideoRoute ? Colors.white : Colors.green,
+        unselectedItemColor: isVideoRoute ? Colors.grey : Colors.grey,
           onTap: _onItemTapped,
           type: BottomNavigationBarType.fixed,
         ),
-    final isVideoRoute = _selectedIndex == 2;
-
-    return Scaffold(
-      body: widget.child,
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: isVideoRoute ? Colors.black : Colors.white,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(_selectedIndex == 0 ? Icons.home : Icons.home_outlined),
-            label: 'Trang Chủ',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(
-              _selectedIndex == 1 ? Icons.vibration : Icons.vibration_outlined,
-            ),
-            label: 'Chuyên mục',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(
-              _selectedIndex == 2
-                  ? Icons.video_collection
-                  : Icons.video_collection_outlined,
-            ),
-            label: 'Video',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(_selectedIndex == 3 ? Icons.chat : Icons.chat_outlined),
-            label: 'Chatbot',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(
-              _selectedIndex == 4
-                  ? Icons.dashboard_customize
-                  : Icons.dashboard_customize_outlined,
-            ),
-            label: 'Tiện ích',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: isVideoRoute ? Colors.white : Colors.green,
-        unselectedItemColor: isVideoRoute ? Colors.grey : Colors.grey,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
       ),
     );
   }

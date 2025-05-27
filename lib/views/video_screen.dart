@@ -73,7 +73,6 @@ class _VideoScreenState extends State<VideoScreen>
   late AnimationController _animationController;
   bool _isControlsVisible = true;
   YoutubePlayerController? _youtubeController;
-  YoutubePlayerController? _youtubeController;
 
   String currentUserName = "";
 
