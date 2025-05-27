@@ -11,20 +11,23 @@ class Layout extends StatefulWidget {
 
 class _LayoutState extends State<Layout> {
   int _selectedIndex = 0;
+  DateTime? _lastBackPressed;
 
   final List<String> _routes = [
     '/home',
     '/category',
     '/video',
-    '/chatbot',
+    '/dantri-ai',
     '/utility',
   ];
 
   void _onItemTapped(int index) {
-    context.go(_routes[index]);
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (_selectedIndex != index) {
+      context.go(_routes[index]);
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   @override
@@ -35,12 +38,39 @@ class _LayoutState extends State<Layout> {
     if (_selectedIndex == -1) _selectedIndex = 0;
   }
 
+  Future<bool> _onWillPop() async {
+    if (_lastBackPressed == null ||
+        DateTime.now().difference(_lastBackPressed!) >
+            const Duration(seconds: 2)) {
+      _lastBackPressed = DateTime.now();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Nhấn back lần nữa để thoát',
+            style: TextStyle(color: Colors.white),
+          ),
+          duration: const Duration(seconds: 2),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: const EdgeInsets.all(10),
+        ),
+      );
+      return false;
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isVideoRoute = _selectedIndex == 2;
+
     return Scaffold(
       body: widget.child,
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isVideoRoute ? Colors.black : Colors.white,
         items: [
           BottomNavigationBarItem(
             icon: Icon(_selectedIndex == 0 ? Icons.home : Icons.home_outlined),
@@ -74,8 +104,8 @@ class _LayoutState extends State<Layout> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
+        selectedItemColor: isVideoRoute ? Colors.white : Colors.green,
+        unselectedItemColor: isVideoRoute ? Colors.grey : Colors.grey,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
       ),

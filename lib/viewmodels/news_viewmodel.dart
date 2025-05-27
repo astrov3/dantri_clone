@@ -1,34 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:webfeed/webfeed.dart'; // Đảm bảo import webfeed
+import 'package:webfeed/webfeed.dart'; // để dùng RssItem
 import '../services/news_service.dart';
 
 class NewsViewModel extends ChangeNotifier {
   List<Map<String, String>> news = [];
   List<Map<String, String>> filteredNews = [];
   final NewsService newsService = NewsService();
+
   bool isLoading = false;
   String searchQuery = '';
 
-  void fetchNews() async {
+  // Lấy tin tức từ getNews() trả về List<RssItem>
+  Future<void> fetchNews() async {
     isLoading = true;
     notifyListeners();
 
     try {
       List<RssItem> rssItems = await newsService.getNews();
-      news =
-          rssItems
-              .map(
-                (rssItem) => {
-                  'title': rssItem.title ?? 'Không có tiêu đề',
-                  'link': rssItem.link ?? '',
-                  'description': rssItem.description ?? '',
-                  'pubDate': rssItem.pubDate?.toString() ?? 'Không có ngày',
-                },
-              )
-              .toList();
-      filteredNews = news; // Ban đầu hiển thị tất cả tin tức
+      news = rssItems.map((rssItem) => {
+            'title': rssItem.title ?? 'Không có tiêu đề',
+            'link': rssItem.link ?? '',
+            'description': rssItem.description ?? '',
+            'pubDate': rssItem.pubDate?.toString() ?? 'Không có ngày',
+          }).toList();
+
+      filteredNews = news; // ban đầu hiển thị tất cả
     } catch (e) {
-      print('Error: $e');
+      print('Error fetching news: $e');
+      news = [];
+      filteredNews = [];
     }
 
     isLoading = false;
@@ -38,15 +38,13 @@ class NewsViewModel extends ChangeNotifier {
   void searchNews(String query) {
     searchQuery = query.toLowerCase();
     if (searchQuery.isEmpty) {
-      filteredNews = news; // Hiển thị tất cả nếu không có từ khóa
+      filteredNews = news;
     } else {
-      filteredNews =
-          news.where((item) {
-            return (item['title']?.toLowerCase().contains(searchQuery) ??
-                    false) ||
-                (item['description']?.toLowerCase().contains(searchQuery) ??
-                    false);
-          }).toList();
+      filteredNews = news.where((item) {
+        final title = item['title']?.toLowerCase() ?? '';
+        final desc = item['description']?.toLowerCase() ?? '';
+        return title.contains(searchQuery) || desc.contains(searchQuery);
+      }).toList();
     }
     notifyListeners();
   }
