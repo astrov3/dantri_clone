@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -83,7 +81,8 @@ class _VideoScreenState extends State<VideoScreen>
     // Lấy tên tài khoản từ Firebase Auth
     final user = FirebaseAuth.instance.currentUser;
     currentUserName = user?.displayName ?? user?.displayName ?? "Người dùng";
-    currentUserAvatar = user?.photoURL ??
+    currentUserAvatar =
+        user?.photoURL ??
         "https://via.placeholder.com/40"; // Avatar mặc định nếu không có
   }
 
@@ -150,18 +149,6 @@ class _VideoScreenState extends State<VideoScreen>
       ),
     );
 
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.black,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: Colors.black,
-        systemNavigationBarDividerColor: Colors.transparent,
-        systemNavigationBarIconBrightness: Brightness.light,
-        systemNavigationBarContrastEnforced: false,
-      ),
-    );
-
     return ChangeNotifierProvider(
       create: (_) => VideoViewModel()..fetchVideos(),
       child: SafeArea(
@@ -190,36 +177,14 @@ class _VideoScreenState extends State<VideoScreen>
                   String videoId = video['id']['videoId'];
                   String title = video['snippet']['title'];
                   String channelTitle = video['snippet']['channelTitle'];
-                  List<Map<String, dynamic>> comments = viewModel.getComments(
-                    videoId,
-                  );
 
                   return GestureDetector(
                     onTap: _toggleControls,
                     child: Stack(
                       children: [
-                        // Background blur with gradient
                         Positioned.fill(
                           child: Stack(
                             children: [
-                              ImageFiltered(
-                                imageFilter: ImageFilter.blur(
-                                  sigmaX: 15,
-                                  sigmaY: 15,
-                                ),
-                                child: Image.network(
-                                  video['snippet']['thumbnails']['high']['url'],
-                                  fit: BoxFit.cover,
-                                  errorBuilder:
-                                      (_, __, ___) => const Center(
-                                        child: Icon(
-                                          Icons.broken_image,
-                                          size: 50,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                ),
-                              ),
                               Container(
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
@@ -238,31 +203,43 @@ class _VideoScreenState extends State<VideoScreen>
 
                         // Video player
                         Center(
-                          child: YoutubePlayerBuilder(
-                            player: YoutubePlayer(
-                              controller:
-                                  _youtubeController ??
-                                  YoutubePlayerController(
-                                    initialVideoId: videoId,
-                                    flags: const YoutubePlayerFlags(
-                                      autoPlay: true,
-                                      mute: false,
-                                      loop: true,
-                                      useHybridComposition: true,
-                                      showLiveFullscreenButton: false,
+                          child: AspectRatio(
+                            aspectRatio:
+                                16 / 9, // Tỷ lệ mặc định cho video ngang
+                            child: YoutubePlayerBuilder(
+                              player: YoutubePlayer(
+                                controller:
+                                    _youtubeController ??
+                                    YoutubePlayerController(
+                                      initialVideoId: videoId,
+                                      flags: const YoutubePlayerFlags(
+                                        autoPlay: true,
+                                        mute: false,
+                                        loop: true,
+                                        useHybridComposition: true,
+                                        showLiveFullscreenButton: false,
+                                        forceHD:
+                                            true, // Thêm flag này để ưu tiên chất lượng HD
+                                      ),
                                     ),
-                                  ),
-                              showVideoProgressIndicator: true,
-                              progressColors: const ProgressBarColors(
-                                playedColor: Colors.green,
-                                handleColor: Colors.green,
-                              ),
-                            ),
-                            builder:
-                                (_, player) => AspectRatio(
-                                  aspectRatio: 16 / 9,
-                                  child: player,
+                                showVideoProgressIndicator: true,
+                                progressColors: const ProgressBarColors(
+                                  playedColor: Colors.green,
+                                  handleColor: Colors.green,
                                 ),
+                                onEnded: (data) {
+                                  // Handle video end
+                                },
+                                onReady: () {
+                                  // Handle video ready
+                                },
+                              ),
+                              builder:
+                                  (_, player) => Container(
+                                    color: Colors.black,
+                                    child: Center(child: player),
+                                  ),
+                            ),
                           ),
                         ),
 
@@ -307,6 +284,7 @@ class _VideoScreenState extends State<VideoScreen>
                                       icon: Icons.share,
                                       onTap: () {},
                                     ),
+                                    const SizedBox(height: 16),
                                   ],
                                 ),
                               ),

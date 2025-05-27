@@ -26,13 +26,13 @@ class CategoryDrawer extends StatelessWidget {
   // Thêm map cho hình ảnh của các chuyên mục
   final Map<String, String> categoryImages = const {
     'Thế giới':
-        'https://images.unsplash.com/photo-1569982175971-d92b01cf8694?w=100&h=60&fit=crop',
+        'https://images.unsplash.com/photo-1502920514313-52581002a659?q=80&w=2067&auto=format&fit=crop',
     'Xã hội':
-        'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=100&h=60&fit=crop',
+        'https://plus.unsplash.com/premium_photo-1664365805083-80ff9ccfde9d?q=80&w=2070&auto=format&fit=crop',
     'Kinh doanh':
         'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=100&h=60&fit=crop',
     'Giải trí':
-        'https://images.unsplash.com/photo-1489599142675-e8935114b25d?w=100&h=60&fit=crop',
+        'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=100&h=60&fit=crop',
     'Bất động sản':
         'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=100&h=60&fit=crop',
     'Thể thao':
@@ -46,7 +46,7 @@ class CategoryDrawer extends StatelessWidget {
     'Xe ++':
         'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=100&h=60&fit=crop',
     'Công nghệ':
-        'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=100&h=60&fit=crop',
+        'https://plus.unsplash.com/premium_photo-1661963874418-df1110ee39c1?q=80&w=1986&auto=format&fit=crop',
     'Giáo dục':
         'https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=100&h=60&fit=crop',
     'Việc làm':
@@ -245,11 +245,6 @@ class CategoryDrawer extends StatelessWidget {
                                   : FontWeight.w600,
                           fontSize: 15,
                         ),
-                      ),
-                      trailing: const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 14,
-                        color: Colors.grey,
                       ),
                       onTap: () {
                         final url = categoryUrls[cat]!;

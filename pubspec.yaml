@@ -50,8 +50,8 @@ flutter:
   assets:
     - assets/logo/logo.png
     - assets/logo/Dantri.png
-    # - assets/traffic-law-credentials.json
-    # - assets/health-care-credentials.json
+    - assets/traffic-law-credentials.json
+    - assets/health-care-credentials.json
   # fonts:
   #   - family: Schyler
   #     fonts:
