@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../viewmodels/video_viewmodel.dart';
 
 class CommentScreen extends StatefulWidget {
@@ -7,6 +8,7 @@ class CommentScreen extends StatefulWidget {
   final String videoTitle;
   final String channelTitle;
   final String currentUserName;
+  final String currentUserAvatar;
 
   const CommentScreen({
     super.key,
@@ -14,6 +16,7 @@ class CommentScreen extends StatefulWidget {
     required this.videoTitle,
     required this.channelTitle,
     required this.currentUserName,
+    required this.currentUserAvatar,
   });
 
   @override
@@ -179,7 +182,7 @@ class _CommentScreenState extends State<CommentScreen>
                                     child: Image.network(
                                       snippet['authorProfileImageUrl']
                                               as String? ??
-                                          'https://via.placeholder.com/40',
+                                          widget.currentUserAvatar,
                                       width: 40,
                                       height: 40,
                                       fit: BoxFit.cover,
@@ -226,7 +229,8 @@ class _CommentScreenState extends State<CommentScreen>
                                             const SizedBox(width: 8),
                                             Text(
                                               _formatDate(
-                                                snippet['publishedAt'] as String,
+                                                snippet['publishedAt']
+                                                    as String,
                                               ),
                                               style: TextStyle(
                                                 color: Colors.grey[600],
@@ -330,7 +334,9 @@ class _CommentScreenState extends State<CommentScreen>
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: (_isSendingComment ? Colors.grey : Colors.green)
+                          color: (_isSendingComment
+                                  ? Colors.grey
+                                  : Colors.green)
                               .withOpacity(0.3),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
@@ -338,74 +344,97 @@ class _CommentScreenState extends State<CommentScreen>
                       ],
                     ),
                     child: IconButton(
-                      icon: _isSendingComment
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Icon(Icons.send, color: Colors.white),
-                      onPressed: _isSendingComment ? null : () async {
-                        final comment = _commentController.text.trim();
-                        if (comment.isNotEmpty) {
-                          setState(() {
-                            _isSendingComment = true;
-                          });
+                      icon:
+                          _isSendingComment
+                              ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                              : const Icon(Icons.send, color: Colors.white),
+                      onPressed:
+                          _isSendingComment
+                              ? null
+                              : () async {
+                                final comment = _commentController.text.trim();
+                                if (comment.isNotEmpty) {
+                                  setState(() {
+                                    _isSendingComment = true;
+                                  });
 
-                          try {
-                            // Gửi comment lên YouTube (đã bao gồm refresh trong method)
-                            await context.read<VideoViewModel>().addCommentFromApi(widget.videoId, comment);
+                                  try {
+                                    // Gửi comment lên YouTube (đã bao gồm refresh trong method)
+                                    await context
+                                        .read<VideoViewModel>()
+                                        .addCommentFromApi(
+                                          widget.videoId,
+                                          comment,
+                                        );
 
-                            // Thêm bình luận mới vào danh sách tạm thời để hiển thị ngay
-                            context.read<VideoViewModel>().addLocalComment(widget.videoId, {
-                              "snippet": {
-                                "topLevelComment": {
-                                  "snippet": {
-                                    "authorDisplayName": widget.currentUserName,
-                                    "authorProfileImageUrl": "https://via.placeholder.com/40",
-                                    "publishedAt": DateTime.now().toIso8601String(),
-                                    "textDisplay": comment,
+                                    // Thêm bình luận mới vào danh sách tạm thời để hiển thị ngay
+                                    context
+                                        .read<VideoViewModel>()
+                                        .addLocalComment(widget.videoId, {
+                                          "snippet": {
+                                            "topLevelComment": {
+                                              "snippet": {
+                                                "authorDisplayName":
+                                                    widget.currentUserName,
+                                                "authorProfileImageUrl":
+                                                    "https://via.placeholder.com/40",
+                                                "publishedAt":
+                                                    DateTime.now()
+                                                        .toIso8601String(),
+                                                "textDisplay": comment,
+                                              },
+                                            },
+                                          },
+                                        });
+
+                                    // Clear input
+                                    _commentController.clear();
+                                    FocusScope.of(context).unfocus();
+
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Bình luận đã được gửi',
+                                          ),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                    }
+
+                                    // KHÔNG fetch lại comments ở đây!
+                                    // Nếu muốn đồng bộ, chỉ fetch khi người dùng kéo để refresh.
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Lỗi khi gửi bình luận: $e',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  } finally {
+                                    if (mounted) {
+                                      setState(() {
+                                        _isSendingComment = false;
+                                      });
+                                    }
                                   }
                                 }
-                              }
-                            });
-
-                            // Clear input
-                            _commentController.clear();
-                            FocusScope.of(context).unfocus();
-
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Bình luận đã được gửi'),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                            }
-
-                            // KHÔNG fetch lại comments ở đây!
-                            // Nếu muốn đồng bộ, chỉ fetch khi người dùng kéo để refresh.
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Lỗi khi gửi bình luận: $e'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          } finally {
-                            if (mounted) {
-                              setState(() {
-                                _isSendingComment = false;
-                              });
-                            }
-                          }
-                        }
-                      },
+                              },
                     ),
                   ),
                 ],

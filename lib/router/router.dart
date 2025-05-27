@@ -108,6 +108,7 @@ class AppRouter {
               videoTitle: params['videoTitle'],
               channelTitle: params['channelTitle'],
               currentUserName: params['currentUserName'],
+              currentUserAvatar: params['currentUserAvatar'],
             ),
           );
         },

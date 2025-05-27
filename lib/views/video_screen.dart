@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -76,13 +75,16 @@ class _VideoScreenState extends State<VideoScreen>
   YoutubePlayerController? _youtubeController;
 
   String currentUserName = "";
+  String currentUserAvatar = "";
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Lấy tên tài khoản từ Firebase Auth
     final user = FirebaseAuth.instance.currentUser;
-    currentUserName = user?.displayName ?? user?.email ?? "Người dùng";
+    currentUserName = user?.displayName ?? user?.displayName ?? "Người dùng";
+    currentUserAvatar = user?.photoURL ??
+        "https://via.placeholder.com/40"; // Avatar mặc định nếu không có
   }
 
   @override
@@ -101,7 +103,6 @@ class _VideoScreenState extends State<VideoScreen>
     _youtubeController?.dispose();
     super.dispose();
   }
-
 
   void _toggleControls() {
     setState(() {
@@ -130,6 +131,7 @@ class _VideoScreenState extends State<VideoScreen>
         'videoTitle': videoTitle,
         'viewModel': viewModel,
         'currentUserName': currentUserName,
+        'currentUserAvatar': currentUserAvatar,
       },
     );
   }
