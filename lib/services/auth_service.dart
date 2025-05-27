@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dantri_clone/views/login_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 class AuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email']);
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Stream to listen to authentication state changes
   Stream<User?> get user {
@@ -49,7 +51,7 @@ class AuthService {
   Future<UserCredential?> signInWithGoogle() async {
     try {
       await _googleSignIn.signOut();
-      
+
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return null;
 
@@ -107,7 +109,7 @@ class AuthService {
       return true;
     } on FirebaseAuthException catch (e) {
       print('Lỗi xóa tài khoản: ${e.message}');
-      
+
       // Nếu cần re-authenticate
       if (e.code == 'requires-recent-login') {
         throw FirebaseAuthException(
@@ -115,7 +117,7 @@ class AuthService {
           message: 'Vui lòng đăng nhập lại để xác nhận xóa tài khoản.',
         );
       }
-      
+
       return false;
     } catch (e) {
       print('Lỗi không xác định khi xóa tài khoản: $e');
@@ -169,6 +171,23 @@ class AuthService {
 
   // Check if user is authenticated
   bool get isAuthenticated => _firebaseAuth.currentUser != null;
+
+  // Save extra profile info
+  Future<void> updateUserProfileFirestore(
+    String uid,
+    Map<String, dynamic> data,
+  ) async {
+    await _firestore
+        .collection('users')
+        .doc(uid)
+        .set(data, SetOptions(merge: true));
+  }
+
+  // Get user profile info
+  Future<Map<String, dynamic>?> getUserProfileFirestore(String uid) async {
+    final doc = await _firestore.collection('users').doc(uid).get();
+    return doc.exists ? doc.data() : null;
+  }
 }
 
 // Authentication Gate Widget

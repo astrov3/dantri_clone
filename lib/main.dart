@@ -21,6 +21,13 @@ class DanTriApp extends StatelessWidget {
       title: 'Dân trí',
       theme: ThemeData(
         primaryColor: Colors.green,
+        colorScheme: ColorScheme.light(
+          primary: Colors.green,
+          secondary: Colors.green.shade700,
+          surface: Colors.white,
+          background: Colors.white,
+          error: Colors.red,
+        ),
         appBarTheme: const AppBarTheme(backgroundColor: Colors.white),
         scaffoldBackgroundColor: Colors.white,
         textSelectionTheme: TextSelectionThemeData(
@@ -48,6 +55,66 @@ class DanTriApp extends StatelessWidget {
             vertical: 12,
           ),
           hintStyle: const TextStyle(color: Colors.grey),
+        ),
+        // Custom DatePicker theme
+        datePickerTheme: DatePickerThemeData(
+          backgroundColor: Colors.white,
+          headerBackgroundColor: Colors.green,
+          headerForegroundColor: Colors.white,
+          dayStyle: const TextStyle(color: Colors.black87),
+          weekdayStyle: const TextStyle(color: Colors.black87),
+          yearStyle: const TextStyle(color: Colors.black87),
+          todayBackgroundColor: MaterialStateProperty.all(
+            Colors.green.withOpacity(0.2),
+          ),
+          todayForegroundColor: MaterialStateProperty.all(Colors.green),
+          dayOverlayColor: MaterialStateProperty.all(
+            Colors.green.withOpacity(0.1),
+          ),
+          yearOverlayColor: MaterialStateProperty.all(
+            Colors.green.withOpacity(0.1),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 8,
+        ),
+        // Custom Dropdown theme
+        dropdownMenuTheme: DropdownMenuThemeData(
+          textStyle: const TextStyle(color: Colors.black87),
+          menuStyle: MenuStyle(
+            backgroundColor: MaterialStateProperty.all(Colors.white),
+            elevation: MaterialStateProperty.all(8),
+            shape: MaterialStateProperty.all(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ),
+        // Custom PopupMenu theme
+        popupMenuTheme: PopupMenuThemeData(
+          color: Colors.white,
+          elevation: 8,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: const TextStyle(color: Colors.black87),
+        ),
+        // Custom Dialog theme
+        dialogTheme: DialogTheme(
+          backgroundColor: Colors.white,
+          elevation: 8,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          titleTextStyle: const TextStyle(
+            color: Colors.black87,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+          contentTextStyle: const TextStyle(
+            color: Colors.black87,
+            fontSize: 16,
+          ),
         ),
       ),
       routerConfig: AppRouter.router,
