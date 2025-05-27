@@ -44,7 +44,7 @@ class _CommentScreenState extends State<CommentScreen>
 
     Future.microtask(() {
       if (!_isInitialized) {
-        widget.viewModel.fetchComments(widget.videoId);
+        context.read<VideoViewModel>().fetchComments(widget.videoId);
         _isInitialized = true;
       }
     });

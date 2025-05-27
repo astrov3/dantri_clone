@@ -1,11 +1,11 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../viewmodels/video_viewmodel.dart';
-import 'comment_screen.dart';
 
 class VideoScreen extends StatefulWidget {
   const VideoScreen({super.key});
@@ -70,6 +70,7 @@ class _VideoScreenState extends State<VideoScreen>
   final PageController _pageController = PageController();
   late AnimationController _animationController;
   bool _isControlsVisible = true;
+  YoutubePlayerController? _youtubeController;
 
   String currentUserName = "";
 
@@ -94,8 +95,10 @@ class _VideoScreenState extends State<VideoScreen>
   void dispose() {
     _pageController.dispose();
     _animationController.dispose();
+    _youtubeController?.dispose();
     super.dispose();
   }
+
 
   void _toggleControls() {
     setState(() {
@@ -116,21 +119,16 @@ class _VideoScreenState extends State<VideoScreen>
     String videoTitle,
     VideoViewModel viewModel,
   ) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder:
-            (_) => ChangeNotifierProvider.value(
-              value: viewModel,
-              child: CommentScreen(
-                videoId: videoId,
-                videoTitle: videoTitle,
-                channelTitle: channelTitle,
-                viewModel: viewModel,
-                currentUserName: currentUserName
-            ),
-      ),
-    ));
+    context.push(
+      '/comment',
+      extra: {
+        'videoId': videoId,
+        'channelTitle': channelTitle,
+        'videoTitle': videoTitle,
+        'viewModel': viewModel,
+        'currentUserName': currentUserName,
+      },
+    );
   }
 
   @override
@@ -213,16 +211,18 @@ class _VideoScreenState extends State<VideoScreen>
                         Center(
                           child: YoutubePlayerBuilder(
                             player: YoutubePlayer(
-                              controller: YoutubePlayerController(
-                                initialVideoId: videoId,
-                                flags: const YoutubePlayerFlags(
-                                  autoPlay: true,
-                                  mute: false,
-                                  loop: true,
-                                  useHybridComposition: true,
-                                  showLiveFullscreenButton: false,
-                                ),
-                              ),
+                              controller:
+                                  _youtubeController ??
+                                  YoutubePlayerController(
+                                    initialVideoId: videoId,
+                                    flags: const YoutubePlayerFlags(
+                                      autoPlay: true,
+                                      mute: false,
+                                      loop: true,
+                                      useHybridComposition: true,
+                                      showLiveFullscreenButton: false,
+                                    ),
+                                  ),
                               showVideoProgressIndicator: true,
                               progressColors: const ProgressBarColors(
                                 playedColor: Colors.green,
