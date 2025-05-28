@@ -411,7 +411,6 @@ class _CommentScreenState extends State<CommentScreen>
                                       );
                                     }
 
-                                    // KHÔNG fetch lại comments ở đây!
                                     // Nếu muốn đồng bộ, chỉ fetch khi người dùng kéo để refresh.
                                   } catch (e) {
                                     if (mounted) {

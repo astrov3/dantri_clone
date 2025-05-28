@@ -28,7 +28,7 @@ class VideoViewModel extends ChangeNotifier {
       return null;
     }
   }
-
+//  Lấy danh sách video 
   void fetchVideos() async {
     isLoading = true;
     notifyListeners();
@@ -42,6 +42,7 @@ class VideoViewModel extends ChangeNotifier {
     isLoading = false;
     notifyListeners();
   }
+  // Lấy thêm video khi người dùng cuộn xuống
 
   void fetchMoreVideos() async {
     if (isFetchingMore) return;
@@ -75,6 +76,7 @@ class VideoViewModel extends ChangeNotifier {
   bool isVideoLiked(String videoId) {
     return likedVideos.contains(videoId);
   }
+  // Thêm bình luận vào danh sách cục bộ
 
   void addComment(String videoId, String comment) {
     if (!videoComments.containsKey(videoId)) {
@@ -84,11 +86,12 @@ class VideoViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Lấy bình luận từ danh sách cục bộ
   List<Map<String, dynamic>> getComments(String videoId) {
     return apiComments[videoId] ?? [];
   }
 
-  // Improved fetchComments with force refresh option
+  // Gọi API để lấy comment video
   Future<void> fetchComments(String videoId, {bool forceRefresh = false}) async {
     // If already loading and not forcing refresh, return
     if (isLoadingComments[videoId] == true && !forceRefresh) return;
