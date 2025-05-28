@@ -116,6 +116,17 @@ class DanTriApp extends StatelessWidget {
             fontSize: 16,
           ),
         ),
+        // Custom SnackBar theme
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: Colors.green,
+          contentTextStyle: const TextStyle(color: Colors.white),
+          actionTextColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          behavior: SnackBarBehavior.floating,
+          insetPadding: const EdgeInsets.all(16),
+        ),
       ),
       routerConfig: AppRouter.router,
     );
